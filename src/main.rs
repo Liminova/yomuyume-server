@@ -5,6 +5,7 @@ use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+mod constants;
 mod routes;
 
 #[tokio::main]
