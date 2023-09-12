@@ -1,6 +1,5 @@
-use crate::routes::status::StatusResponse;
 use axum::{routing::get, Router};
-use routes::status::status;
+use routes::{status::*, *};
 use std::{env, net::SocketAddr};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
@@ -19,7 +18,10 @@ async fn main() {
     );
 
     #[derive(OpenApi)]
-    #[openapi(paths(routes::status::status), components(schemas(StatusResponse)))]
+    #[openapi(
+        paths(status::get_status, status::post_status),
+        components(schemas(StatusResponse))
+    )]
     struct ApiDoc;
 
     tracing_subscriber::fmt()
@@ -28,7 +30,7 @@ async fn main() {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/api/status", get(status))
+        .route("/api/status", get(get_status).post(post_status))
         .layer(TraceLayer::new_for_http());
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
