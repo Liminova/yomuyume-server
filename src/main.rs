@@ -1,5 +1,8 @@
-use axum::{routing::get, Router};
-use routes::{status::*, *};
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use routes::{auth::*, status::*, *};
 use std::{env, net::SocketAddr};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
@@ -25,6 +28,7 @@ async fn main() {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/status", get(get_status).post(post_status))
+        .route("/api/auth", post(auth))
         .layer(TraceLayer::new_for_http());
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
