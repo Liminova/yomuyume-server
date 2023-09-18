@@ -21,7 +21,7 @@ async fn main() {
     #[derive(OpenApi)]
     #[openapi(
         paths(status::get_status, status::post_status),
-        components(schemas(StatusResponse))
+        components(schemas(StatusResponse, StatusQuery))
     )]
     struct ApiDoc;
 

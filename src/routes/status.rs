@@ -15,7 +15,7 @@ pub struct StatusResponse {
     pub echo: Option<String>,
 }
 
-#[derive(Deserialize, IntoParams)]
+#[derive(Deserialize, IntoParams, ToSchema)]
 pub struct StatusQuery {
     ///  A test string to test your request body.
     pub echo: Option<String>,
