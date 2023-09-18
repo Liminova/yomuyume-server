@@ -16,13 +16,13 @@ pub struct StatusResponse {
 }
 
 #[derive(Deserialize, IntoParams, ToSchema)]
-pub struct StatusQuery {
+pub struct StatusRequest {
     ///  A test string to test your request body.
     pub echo: Option<String>,
 }
 
-#[utoipa::path(get, path = "/api/status", params(StatusQuery), responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
-pub async fn get_status(query: Query<StatusQuery>) -> impl IntoResponse {
+#[utoipa::path(get, path = "/api/status", params(StatusRequest), responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
+pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let echo = query.echo.clone();
     let version = get_version();
     Json(StatusResponse {
@@ -34,7 +34,7 @@ pub async fn get_status(query: Query<StatusQuery>) -> impl IntoResponse {
 }
 
 #[utoipa::path(post, path = "/api/status", responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
-pub async fn post_status(query: Option<Json<StatusQuery>>) -> impl IntoResponse {
+pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoResponse {
     if let Some(query) = query {
         let echo = query.echo.clone();
         let version = get_version();
