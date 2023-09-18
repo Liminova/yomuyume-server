@@ -18,13 +18,6 @@ async fn main() {
         env::var("SERVER_PORT").unwrap()
     );
 
-    #[derive(OpenApi)]
-    #[openapi(
-        paths(status::get_status, status::post_status),
-        components(schemas(StatusResponse, StatusRequest))
-    )]
-    struct ApiDoc;
-
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();

@@ -4,14 +4,17 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::constants::version::get_version;
+use crate::ApiResponse;
 
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct StatusResponse {
-    pub description: String,
+pub struct StatusResponseBody {
+    /// Current local server time.
     pub server_time: DateTime<Local>,
+    /// Current yomuyume version.
     pub version: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// Your test string.
     pub echo: Option<String>,
 }
 
@@ -25,11 +28,13 @@ pub struct StatusRequest {
 pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let echo = query.echo.clone();
     let version = get_version();
-    Json(StatusResponse {
+    Json(ApiResponse {
         description: String::from("Status check successful."),
-        server_time: chrono::Local::now(),
-        version,
-        echo,
+        body: Some(StatusResponseBody {
+            server_time: chrono::Local::now(),
+            version,
+            echo,
+        }),
     })
 }
 
@@ -38,19 +43,23 @@ pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoRespons
     if let Some(query) = query {
         let echo = query.echo.clone();
         let version = get_version();
-        Json(StatusResponse {
+        Json(ApiResponse {
             description: String::from("Status check successful."),
-            server_time: chrono::Local::now(),
-            version,
-            echo,
+            body: Some(StatusResponseBody {
+                server_time: chrono::Local::now(),
+                version,
+                echo,
+            }),
         })
     } else {
         let version = get_version();
-        Json(StatusResponse {
+        Json(ApiResponse {
             description: String::from("Status check successful."),
-            server_time: chrono::Local::now(),
-            version,
-            echo: None,
+            body: Some(StatusResponseBody {
+                server_time: chrono::Local::now(),
+                version,
+                echo: None,
+            }),
         })
     }
 }
