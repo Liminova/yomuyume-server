@@ -33,14 +33,24 @@ pub async fn get_status(query: Query<StatusQuery>) -> impl IntoResponse {
     })
 }
 
-#[utoipa::path(post, path = "/api/status", params(StatusQuery), responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
-pub async fn post_status(query: Query<StatusQuery>) -> impl IntoResponse {
-    let echo = query.echo.clone();
-    let version = get_version();
-    Json(StatusResponse {
-        description: String::from("Status check successful."),
-        server_time: chrono::Local::now(),
-        version,
-        echo,
-    })
+#[utoipa::path(post, path = "/api/status", responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
+pub async fn post_status(query: Option<Json<StatusQuery>>) -> impl IntoResponse {
+    if let Some(query) = query {
+        let echo = query.echo.clone();
+        let version = get_version();
+        Json(StatusResponse {
+            description: String::from("Status check successful."),
+            server_time: chrono::Local::now(),
+            version,
+            echo,
+        })
+    } else {
+        let version = get_version();
+        Json(StatusResponse {
+            description: String::from("Status check successful."),
+            server_time: chrono::Local::now(),
+            version,
+            echo: None,
+        })
+    }
 }
