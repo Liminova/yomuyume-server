@@ -1,3 +1,4 @@
+use axum::http::StatusCode;
 use axum::{extract::Query, response::IntoResponse, Json};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
@@ -43,23 +44,29 @@ pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoRespons
     if let Some(query) = query {
         let echo = query.echo.clone();
         let version = get_version();
-        Json(ApiResponse {
-            description: String::from("Status check successful."),
-            body: Some(StatusResponseBody {
-                server_time: chrono::Local::now(),
-                version,
-                echo,
+        (
+            StatusCode::OK,
+            Json(ApiResponse {
+                description: String::from("Status check successful."),
+                body: Some(StatusResponseBody {
+                    server_time: chrono::Local::now(),
+                    version,
+                    echo,
+                }),
             }),
-        })
+        )
     } else {
         let version = get_version();
-        Json(ApiResponse {
-            description: String::from("Status check successful."),
-            body: Some(StatusResponseBody {
-                server_time: chrono::Local::now(),
-                version,
-                echo: None,
+        (
+            StatusCode::OK,
+            Json(ApiResponse {
+                description: String::from("Status check successful."),
+                body: Some(StatusResponseBody {
+                    server_time: chrono::Local::now(),
+                    version,
+                    echo: None,
+                }),
             }),
-        })
+        )
     }
 }
