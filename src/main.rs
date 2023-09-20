@@ -3,23 +3,23 @@ use axum::{
     Router,
 };
 use routes::{auth::*, status::*, *};
-use std::{env, net::SocketAddr};
+use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::config::Config;
+
+mod config;
 mod constants;
 mod routes;
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
+    let config = Config::init();
 
-    let addr_str = format!(
-        "{}:{}",
-        env::var("SERVER_ADDRESS").unwrap(),
-        env::var("SERVER_PORT").unwrap()
-    );
+    let addr_str = format!("{}:{}", config.server_address, config.server_port);
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
