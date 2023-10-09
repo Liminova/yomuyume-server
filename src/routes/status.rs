@@ -29,14 +29,17 @@ pub struct StatusRequest {
 pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let echo = query.echo.clone();
     let version = get_version();
-    Json(ApiResponse {
-        description: String::from("Status check successful."),
-        body: Some(StatusResponseBody {
-            server_time: chrono::Local::now(),
-            version,
-            echo,
+    (
+        StatusCode::OK,
+        Json(ApiResponse {
+            description: String::from("Status check successful."),
+            body: Some(StatusResponseBody {
+                server_time: chrono::Local::now(),
+                version,
+                echo,
+            }),
         }),
-    })
+    )
 }
 
 #[utoipa::path(post, path = "/api/status", responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
