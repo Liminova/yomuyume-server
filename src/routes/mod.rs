@@ -1,16 +1,13 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
-use self::{
-    auth::{AuthRequest, AuthResponseBody},
-    status::{StatusRequest, StatusResponseBody},
-};
+use self::status::{StatusRequest, StatusResponseBody};
 
 pub mod auth;
 pub mod status;
 
 #[derive(Deserialize, Serialize, ToSchema)]
-#[aliases(AuthResponse = ApiResponse<AuthResponseBody>, StatusResponse = ApiResponse<StatusResponseBody>)]
+#[aliases(StatusResponse = ApiResponse<StatusResponseBody>)]
 pub struct ApiResponse<T> {
     /// A description of the response status.
     pub description: String,
@@ -22,14 +19,7 @@ pub struct ApiResponse<T> {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(auth::auth, status::get_status, status::post_status,),
-    components(schemas(
-        AuthResponse,
-        AuthResponseBody,
-        AuthRequest,
-        StatusResponse,
-        StatusResponseBody,
-        StatusRequest
-    ))
+    paths(status::get_status, status::post_status),
+    components(schemas(StatusResponse, StatusResponseBody, StatusRequest))
 )]
 pub struct ApiDoc;

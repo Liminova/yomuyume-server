@@ -13,6 +13,7 @@ use crate::config::Config;
 
 mod config;
 mod constants;
+mod models;
 mod routes;
 
 pub struct AppState {
@@ -83,6 +84,7 @@ async fn main() {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/status", get(get_status).post(post_status))
+        .route("/api/auth/register", post(post_register))
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(AppState {
             sqlite: pool.clone(),
