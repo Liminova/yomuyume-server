@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
+use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
     extract::State,
     http::{header, Request, StatusCode},
@@ -8,10 +8,14 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use axum_extra::extract::CookieJar;
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use axum_extra::extract::{
+    cookie::{Cookie, SameSite},
+    CookieJar,
+};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::{
     models::{auth::TokenClaims, user::User},
@@ -20,22 +24,33 @@ use crate::{
 
 use super::ApiResponse;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct AuthResponseBody {
     pub message: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct RegisterResponseBody {
     #[serde(flatten)]
     pub user: User,
+}
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct LoginRequest {
+    pub login: String,
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct LoginResponseBody {
+    pub token: String,
 }
 
 pub async fn auth<B>(
@@ -135,7 +150,11 @@ pub async fn auth<B>(
     Ok(next.run(req).await)
 }
 
-#[utoipa::path(post, path = "/api/auth/register", responses((status = 200, description = "Registration successful.", body = RegisterResponse)))]
+#[utoipa::path(post, path = "/api/auth/register", responses(
+    (status = 200, description = "Registration successful.", body = RegisterResponse),
+    (status = 500, description = "Internal server error.", body = AuthResponse),
+    (status = 409, description = "A conflict has occurred.", body = AuthResponse),
+))]
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
@@ -221,6 +240,114 @@ pub async fn post_register(
         Json(ApiResponse {
             description: String::from("Registration successful."),
             body: Some(RegisterResponseBody { user }),
+        }),
+    ))
+}
+
+#[utoipa::path(post, path = "/api/auth/login", responses(
+    (status = 200, description = "Login successful.", body = LoginResponse),
+    (status = 500, description = "Internal server error.", body = AuthResponse),
+    (status = 409, description = "A conflict has occurred.", body = AuthResponse),
+))]
+pub async fn post_login(
+    State(data): State<Arc<AppState>>,
+    query: Json<LoginRequest>,
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
+    let user = sqlx::query_as!(
+        User,
+        r#"SELECT id as "id: uuid::Uuid", username, email, password, profile_picture, created_at as "created_at: chrono::DateTime<chrono::Utc>", updated_at as "updated_at: chrono::DateTime<chrono::Utc>" FROM users WHERE username = $1"#,
+        query.login
+    ).fetch_optional(&data.sqlite).await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse {
+                description: String::from("An internal server error has occurred."),
+                body: Some(AuthResponseBody {
+                    message: format!("Failed to fetch user from database. Database error: {}", e),
+                })
+            })
+        )
+    })?
+    .ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse {
+                description: String::from("Server has received a bad request."),
+                    body: Some(AuthResponseBody {
+                        message: String::from("Invalid username or password."),
+                    })
+            })
+        )
+    })?;
+
+    let is_valid = match PasswordHash::new(&user.password) {
+        Ok(parsed_hash) => Argon2::default()
+            .verify_password(query.password.as_bytes(), &parsed_hash)
+            .map_or(false, |_| true),
+        Err(_) => false,
+    };
+
+    if !is_valid {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse {
+                description: String::from("Server has received a bad request"),
+                body: Some(AuthResponseBody {
+                    message: String::from("Invalid username or password."),
+                }),
+            }),
+        ));
+    }
+
+    let now = chrono::Utc::now();
+    let iat = now.timestamp() as usize;
+    let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
+    let claims = TokenClaims {
+        sub: user.id.to_string(),
+        exp,
+        iat,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
+    )
+    .unwrap();
+
+    let cookie = Cookie::build("token", token.to_owned())
+        .path("/")
+        .max_age(time::Duration::minutes(&data.env.jwt_maxage * 60))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+    Ok((
+        StatusCode::OK,
+        [(header::SET_COOKIE, cookie.to_string())],
+        Json(ApiResponse {
+            description: String::from("Login successful."),
+            body: Some(LoginResponseBody { token }),
+        }),
+    ))
+}
+
+#[utoipa::path(get, path = "/api/auth/login", responses((status = 200, description = "Logout successful.", body = AuthResponse)))]
+pub async fn get_logout(
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
+    let cookie = Cookie::build("token", "")
+        .path("/")
+        .max_age(time::Duration::hours(-1))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+    Ok((
+        StatusCode::OK,
+        [(header::SET_COOKIE, cookie.to_string())],
+        Json(ApiResponse::<AuthResponseBody> {
+            description: String::from("Logout successful."),
+            body: None,
         }),
     ))
 }

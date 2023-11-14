@@ -1,4 +1,5 @@
 use axum::{
+    middleware,
     routing::{get, post},
     Router,
 };
@@ -81,15 +82,22 @@ async fn main() {
         }
     }
 
+    let app_state = Arc::new(AppState {
+        sqlite: pool.clone(),
+        env: config.clone(),
+    });
+
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/status", get(get_status).post(post_status))
         .route("/api/auth/register", post(post_register))
+        .route("/api/auth/login", post(post_login))
+        .route(
+            "/api/auth/logout",
+            get(get_logout).route_layer(middleware::from_fn_with_state(app_state.clone(), auth)),
+        )
         .layer(TraceLayer::new_for_http())
-        .with_state(Arc::new(AppState {
-            sqlite: pool.clone(),
-            env: config.clone(),
-        }));
+        .with_state(app_state);
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
     tracing::debug!("listening on: {}", addr);
