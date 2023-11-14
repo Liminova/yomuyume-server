@@ -26,7 +26,7 @@ pub struct AuthResponseBody {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct RegisterQuery {
+pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
@@ -138,7 +138,7 @@ pub async fn auth<B>(
 #[utoipa::path(post, path = "/api/auth/register", responses((status = 200, description = "Registration successful.", body = RegisterResponse)))]
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
-    Json(query): Json<RegisterQuery>,
+    Json(query): Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
     let email_exists = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
         .bind(query.email.to_owned().to_ascii_lowercase())
