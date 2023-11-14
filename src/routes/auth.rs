@@ -332,7 +332,7 @@ pub async fn post_login(
     ))
 }
 
-#[utoipa::path(get, path = "/api/auth/login", responses((status = 200, description = "Logout successful.", body = AuthResponse)))]
+#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = AuthResponse)))]
 pub async fn get_logout(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
     let cookie = Cookie::build("token", "")
