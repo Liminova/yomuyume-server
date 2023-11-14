@@ -5,7 +5,7 @@ pub struct Config {
     pub database_url: String,
     pub jwt_secret: String,
     pub jwt_expires_in: String,
-    pub jwt_maxage: i32,
+    pub jwt_maxage: i64,
 }
 
 impl Config {
