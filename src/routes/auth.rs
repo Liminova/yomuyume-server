@@ -21,7 +21,7 @@ use crate::{
 use super::ApiResponse;
 
 #[derive(Debug, Serialize)]
-pub struct AuthResponse {
+pub struct AuthResponseBody {
     pub message: String,
 }
 
@@ -43,7 +43,7 @@ pub async fn auth<B>(
     State(data): State<Arc<AppState>>,
     mut req: Request<B>,
     next: Next<B>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponse>>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
     let token = cookie_jar
         .get("token")
         .map(|cookie| cookie.value().to_string())
@@ -63,7 +63,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponse {
+                body: Some(AuthResponseBody {
                     message: String::from("You're not logged in, please provide a token."),
                 }),
             }),
@@ -80,7 +80,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponse {
+                body: Some(AuthResponseBody {
                     message: String::from("Invalid token."),
                 }),
             }),
@@ -93,7 +93,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponse {
+                body: Some(AuthResponseBody {
                     message: String::from("Invalid token."),
                 }),
             }),
@@ -112,7 +112,7 @@ pub async fn auth<B>(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("Failed while fetching user from database."),
-                body: Some(AuthResponse {
+                body: Some(AuthResponseBody {
                     message: format!("{}", e),
                 }),
             }),
@@ -124,7 +124,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponse {
+                body: Some(AuthResponseBody {
                     message: String::from("The user belonging to this token no longer exists."),
                 }),
             }),
@@ -139,7 +139,7 @@ pub async fn auth<B>(
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
     Json(query): Json<RegisterQuery>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponse>>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
     let email_exists = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
         .bind(query.email.to_owned().to_ascii_lowercase())
         .fetch_one(&data.sqlite)
@@ -148,9 +148,12 @@ pub async fn post_register(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse {
-                    description: String::from("Failed while fetching user from database."),
-                    body: Some(AuthResponse {
-                        message: format!("Database error: {}", e),
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(AuthResponseBody {
+                        message: format!(
+                            "Failed to fetch user from database. Database error: {}",
+                            e
+                        ),
                     }),
                 }),
             )
@@ -162,7 +165,7 @@ pub async fn post_register(
                 StatusCode::CONFLICT,
                 Json(ApiResponse {
                     description: String::from("A conflict has occurred on the server."),
-                    body: Some(AuthResponse {
+                    body: Some(AuthResponseBody {
                         message: String::from("An user with this email already exists."),
                     }),
                 }),
@@ -178,7 +181,7 @@ pub async fn post_register(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse {
                     description: String::from("An internal server error has occurred."),
-                    body: Some(AuthResponse {
+                    body: Some(AuthResponseBody {
                         message: format!("Error while hashing password: {}", e),
                     }),
                 }),
@@ -206,8 +209,8 @@ pub async fn post_register(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("An internal server error has occurred."),
-                body: Some(AuthResponse {
-                    message: format!("Database error: {}", e)
+                body: Some(AuthResponseBody {
+                    message: format!("Failed to insert user into database. Database error: {}", e)
                 }),
             })
         )
