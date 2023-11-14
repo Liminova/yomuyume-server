@@ -33,7 +33,7 @@ pub struct RegisterRequest {
 }
 
 #[derive(Debug, Serialize)]
-pub struct RegisterResponse {
+pub struct RegisterResponseBody {
     #[serde(flatten)]
     pub user: User,
 }
@@ -220,7 +220,7 @@ pub async fn post_register(
         StatusCode::OK,
         Json(ApiResponse {
             description: String::from("Registration successful."),
-            body: Some(RegisterResponse { user }),
+            body: Some(RegisterResponseBody { user }),
         }),
     ))
 }
