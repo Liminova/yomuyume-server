@@ -1,6 +1,6 @@
 # yomuyume-server
 
-![yomuyume logo](assets/yomuyume.png)
+<img src="assets/yomuyume.png" alt="yomuyume logo" width="128" height="128">
 
 the backend of yomuyume - a self-hosted comics/manga server.
 
