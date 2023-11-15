@@ -1,5 +1,7 @@
 # yomuyume-server
 
+![yomuyume logo](assets/yomuyume.png)
+
 the backend of yomuyume - a self-hosted comics/manga server.
 
 ## usage
