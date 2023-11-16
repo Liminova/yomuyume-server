@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
 use self::{
-    auth::{
-        AuthResponseBody, LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody,
-    },
+    auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
     status::{StatusRequest, StatusResponseBody},
 };
 
@@ -12,8 +10,13 @@ pub mod auth;
 pub mod status;
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
+pub struct ErrorResponseBody {
+    pub message: String,
+}
+
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 #[aliases(
-    AuthResponse = ApiResponse<AuthResponseBody>,
+    ErrorResponse = ApiResponse<ErrorResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
     RegisterResponse = ApiResponse<RegisterResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>
@@ -37,8 +40,6 @@ pub struct ApiResponse<T> {
         status::post_status
     ),
     components(schemas(
-        AuthResponse,
-        AuthResponseBody,
         LoginResponse,
         LoginResponseBody,
         LoginRequest,
