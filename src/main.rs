@@ -97,6 +97,7 @@ async fn main() {
             get(get_logout).route_layer(middleware::from_fn_with_state(app_state.clone(), auth)),
         )
         .route("/api/categories", get(get_categories))
+        .route("/api/category/:category_id", get(get_category))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 
