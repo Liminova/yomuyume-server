@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS titles
 (
     id           TEXT PRIMARY KEY NOT NULL,
     title        TEXT             NOT NULL,
-    category     TEXT                     ,
+    category_id  TEXT                     ,
     author       TEXT                     ,
     description  TEXT                     ,
     release_date DATETIME                 ,
