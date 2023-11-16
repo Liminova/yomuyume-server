@@ -1,19 +1,29 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
+use crate::models::category::Category;
+
 use self::{
-    auth::{
-        AuthResponseBody, LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody,
-    },
+    auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
+    categories::{CategoriesResponseBody, CategoryResponseBody},
     status::{StatusRequest, StatusResponseBody},
 };
 
 pub mod auth;
+pub mod categories;
 pub mod status;
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
+pub struct ErrorResponseBody {
+    /// The error message.
+    pub message: String,
+}
+
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 #[aliases(
-    AuthResponse = ApiResponse<AuthResponseBody>,
+    CategoryResponse = ApiResponse<CategoryResponseBody>,
+    CategoriesResponse = ApiResponse<CategoriesResponseBody>,
+    ErrorResponse = ApiResponse<ErrorResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
     RegisterResponse = ApiResponse<RegisterResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>
@@ -33,12 +43,19 @@ pub struct ApiResponse<T> {
         auth::post_login,
         auth::post_register,
         auth::get_logout,
+        categories::get_categories,
+        categories::get_category,
         status::get_status,
         status::post_status
     ),
     components(schemas(
-        AuthResponse,
-        AuthResponseBody,
+        Category,
+        CategoryResponse,
+        CategoryResponseBody,
+        CategoriesResponse,
+        CategoriesResponseBody,
+        ErrorResponse,
+        ErrorResponseBody,
         LoginResponse,
         LoginResponseBody,
         LoginRequest,
