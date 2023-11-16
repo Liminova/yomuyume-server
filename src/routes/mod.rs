@@ -12,6 +12,7 @@ pub mod status;
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
+    /// The error message.
     pub message: String,
 }
 
