@@ -7,6 +7,7 @@ use self::{
 };
 
 pub mod auth;
+pub mod categories;
 pub mod status;
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
