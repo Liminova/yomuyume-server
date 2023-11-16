@@ -3,7 +3,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use routes::{auth::*, status::*, *};
+use routes::{auth::*, categories::*, status::*, *};
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Sqlite};
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::trace::TraceLayer;
@@ -96,6 +96,7 @@ async fn main() {
             "/api/auth/logout",
             get(get_logout).route_layer(middleware::from_fn_with_state(app_state.clone(), auth)),
         )
+        .route("/api/categories", get(get_categories))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 
