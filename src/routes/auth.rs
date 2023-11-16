@@ -147,8 +147,8 @@ pub async fn auth<B>(
 
 #[utoipa::path(post, path = "/api/auth/register", responses(
     (status = 200, description = "Registration successful.", body = RegisterResponse),
-    (status = 500, description = "Internal server error.", body = AuthResponse),
-    (status = 409, description = "A conflict has occurred.", body = AuthResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse),
+    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
 ))]
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
@@ -241,8 +241,8 @@ pub async fn post_register(
 
 #[utoipa::path(post, path = "/api/auth/login", responses(
     (status = 200, description = "Login successful.", body = LoginResponse),
-    (status = 500, description = "Internal server error.", body = AuthResponse),
-    (status = 409, description = "A conflict has occurred.", body = AuthResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse),
+    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
 ))]
 pub async fn post_login(
     State(data): State<Arc<AppState>>,
@@ -327,7 +327,7 @@ pub async fn post_login(
     ))
 }
 
-#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = AuthResponse)))]
+#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = ErrorResponse)))]
 pub async fn get_logout(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let cookie = Cookie::build("token", "")
