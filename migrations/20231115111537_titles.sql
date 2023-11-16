@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS titles
     is_colored   BOOLEAN                  ,
     is_completed BOOLEAN                  ,
     thumbnail    TEXT                     ,
-    FOREIGN KEY(category) REFERENCES categories(id) ON DELETE CASCADE
+    FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
