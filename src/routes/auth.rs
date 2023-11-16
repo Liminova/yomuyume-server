@@ -22,12 +22,7 @@ use crate::{
     AppState,
 };
 
-use super::ApiResponse;
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct AuthResponseBody {
-    pub message: String,
-}
+use super::{ApiResponse, ErrorResponseBody};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequest {
@@ -58,7 +53,7 @@ pub async fn auth<B>(
     State(data): State<Arc<AppState>>,
     mut req: Request<B>,
     next: Next<B>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let token = cookie_jar
         .get("token")
         .map(|cookie| cookie.value().to_string())
@@ -78,7 +73,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: String::from("You're not logged in, please provide a token."),
                 }),
             }),
@@ -95,7 +90,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: String::from("Invalid token."),
                 }),
             }),
@@ -108,7 +103,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: String::from("Invalid token."),
                 }),
             }),
@@ -127,7 +122,7 @@ pub async fn auth<B>(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("Failed while fetching user from database."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: format!("{}", e),
                 }),
             }),
@@ -139,7 +134,7 @@ pub async fn auth<B>(
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse {
                 description: String::from("You're not authorized."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: String::from("The user belonging to this token no longer exists."),
                 }),
             }),
@@ -152,13 +147,13 @@ pub async fn auth<B>(
 
 #[utoipa::path(post, path = "/api/auth/register", responses(
     (status = 200, description = "Registration successful.", body = RegisterResponse),
-    (status = 500, description = "Internal server error.", body = AuthResponse),
-    (status = 409, description = "A conflict has occurred.", body = AuthResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse),
+    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
 ))]
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let email_exists = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
         .bind(query.email.to_owned().to_ascii_lowercase())
         .fetch_one(&data.sqlite)
@@ -168,7 +163,7 @@ pub async fn post_register(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse {
                     description: String::from("An internal server error has occurred."),
-                    body: Some(AuthResponseBody {
+                    body: Some(ErrorResponseBody {
                         message: format!(
                             "Failed to fetch user from database. Database error: {}",
                             e
@@ -184,7 +179,7 @@ pub async fn post_register(
                 StatusCode::CONFLICT,
                 Json(ApiResponse {
                     description: String::from("A conflict has occurred on the server."),
-                    body: Some(AuthResponseBody {
+                    body: Some(ErrorResponseBody {
                         message: String::from("An user with this email already exists."),
                     }),
                 }),
@@ -200,7 +195,7 @@ pub async fn post_register(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse {
                     description: String::from("An internal server error has occurred."),
-                    body: Some(AuthResponseBody {
+                    body: Some(ErrorResponseBody {
                         message: format!("Error while hashing password: {}", e),
                     }),
                 }),
@@ -228,7 +223,7 @@ pub async fn post_register(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("An internal server error has occurred."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: format!("Failed to insert user into database. Database error: {}", e)
                 }),
             })
@@ -246,13 +241,13 @@ pub async fn post_register(
 
 #[utoipa::path(post, path = "/api/auth/login", responses(
     (status = 200, description = "Login successful.", body = LoginResponse),
-    (status = 500, description = "Internal server error.", body = AuthResponse),
-    (status = 409, description = "A conflict has occurred.", body = AuthResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse),
+    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
 ))]
 pub async fn post_login(
     State(data): State<Arc<AppState>>,
     query: Json<LoginRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let user = sqlx::query_as!(
         User,
         r#"SELECT id as "id: uuid::Uuid", username, email, password, profile_picture, created_at as "created_at: chrono::DateTime<chrono::Utc>", updated_at as "updated_at: chrono::DateTime<chrono::Utc>" FROM users WHERE username = $1"#,
@@ -262,7 +257,7 @@ pub async fn post_login(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("An internal server error has occurred."),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: format!("Failed to fetch user from database. Database error: {}", e),
                 })
             })
@@ -273,7 +268,7 @@ pub async fn post_login(
             StatusCode::BAD_REQUEST,
             Json(ApiResponse {
                 description: String::from("Server has received a bad request."),
-                    body: Some(AuthResponseBody {
+                    body: Some(ErrorResponseBody {
                         message: String::from("Invalid username or password."),
                     })
             })
@@ -292,7 +287,7 @@ pub async fn post_login(
             StatusCode::BAD_REQUEST,
             Json(ApiResponse {
                 description: String::from("Server has received a bad request"),
-                body: Some(AuthResponseBody {
+                body: Some(ErrorResponseBody {
                     message: String::from("Invalid username or password."),
                 }),
             }),
@@ -332,9 +327,9 @@ pub async fn post_login(
     ))
 }
 
-#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = AuthResponse)))]
+#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = ErrorResponse)))]
 pub async fn get_logout(
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<AuthResponseBody>>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let cookie = Cookie::build("token", "")
         .path("/")
         .max_age(time::Duration::hours(-1))
@@ -345,7 +340,7 @@ pub async fn get_logout(
     Ok((
         StatusCode::OK,
         [(header::SET_COOKIE, cookie.to_string())],
-        Json(ApiResponse::<AuthResponseBody> {
+        Json(ApiResponse::<ErrorResponseBody> {
             description: String::from("Logout successful."),
             body: None,
         }),
