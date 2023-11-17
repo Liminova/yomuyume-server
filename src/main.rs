@@ -3,7 +3,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use routes::{auth::*, categories::*, status::*, *};
+use routes::{auth::*, categories::*, status::*, titles::*, *};
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Sqlite};
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::trace::TraceLayer;
@@ -98,6 +98,8 @@ async fn main() {
         )
         .route("/api/categories", get(get_categories))
         .route("/api/category/:category_id", get(get_category))
+        .route("/api/titles", get(get_titles))
+        .route("/api/title/:title_id", get(get_title))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 

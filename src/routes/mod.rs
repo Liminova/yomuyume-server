@@ -1,17 +1,19 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::models::category::Category;
+use crate::models::{category::Category, title::Title};
 
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
     categories::{CategoriesResponseBody, CategoryResponseBody},
     status::{StatusRequest, StatusResponseBody},
+    titles::{TitleResponseBody, TitlesResponseBody},
 };
 
 pub mod auth;
 pub mod categories;
 pub mod status;
+pub mod titles;
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
@@ -26,7 +28,9 @@ pub struct ErrorResponseBody {
     ErrorResponse = ApiResponse<ErrorResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
     RegisterResponse = ApiResponse<RegisterResponseBody>,
-    StatusResponse = ApiResponse<StatusResponseBody>
+    StatusResponse = ApiResponse<StatusResponseBody>,
+    TitleResponse = ApiResponse<TitleResponseBody>,
+    TitlesResponse = ApiResponse<TitlesResponseBody>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -64,7 +68,12 @@ pub struct ApiResponse<T> {
         RegisterRequest,
         StatusResponse,
         StatusResponseBody,
-        StatusRequest
+        StatusRequest,
+        Title,
+        TitleResponse,
+        TitleResponseBody,
+        TitlesResponse,
+        TitlesResponseBody
     ))
 )]
 pub struct ApiDoc;
