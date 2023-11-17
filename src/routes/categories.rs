@@ -61,8 +61,8 @@ pub async fn get_categories(
 }
 
 #[utoipa::path(get, path = "/api/category/{category_id}", responses(
-    (status = 200, description = "Fetch category successful.", body = CategoriesResponse),
-    (status = 204, description = "Fetch category successful, but one was not found.", body = CategoriesResponse),
+    (status = 200, description = "Fetch category successful.", body = CategoryResponse),
+    (status = 204, description = "Fetch category successful, but one was not found.", body = CategoryResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
 ))]
 pub async fn get_category(
