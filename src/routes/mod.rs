@@ -50,7 +50,9 @@ pub struct ApiResponse<T> {
         categories::get_categories,
         categories::get_category,
         status::get_status,
-        status::post_status
+        status::post_status,
+        titles::get_titles,
+        titles::get_title,
     ),
     components(schemas(
         Category,
