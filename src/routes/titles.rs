@@ -16,12 +16,13 @@ use super::{ApiResponse, ErrorResponseBody};
 
 #[derive(Serialize, ToSchema)]
 pub struct TitlesResponseBody {
+    /// A list of all fetched titles.
     pub data: Vec<Title>,
 }
 
 #[derive(Serialize, ToSchema)]
 pub struct TitleResponseBody {
-    #[serde(flatten)]
+    /// The requested title.
     pub data: Title,
 }
 
