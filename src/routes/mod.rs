@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::models::{category::Category, title::Title};
+use crate::models::{category::Category, page::Page, title::Title};
 
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
@@ -12,6 +12,7 @@ use self::{
 
 pub mod auth;
 pub mod categories;
+pub mod pages;
 pub mod status;
 pub mod titles;
 
@@ -65,6 +66,7 @@ pub struct ApiResponse<T> {
         LoginResponse,
         LoginResponseBody,
         LoginRequest,
+        Page,
         RegisterResponse,
         RegisterResponseBody,
         RegisterRequest,
@@ -75,7 +77,7 @@ pub struct ApiResponse<T> {
         TitleResponse,
         TitleResponseBody,
         TitlesResponse,
-        TitlesResponseBody
+        TitlesResponseBody,
     ))
 )]
 pub struct ApiDoc;
