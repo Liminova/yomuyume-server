@@ -6,7 +6,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -104,7 +103,6 @@ pub async fn get_page(
     }
 }
 
-#[debug_handler]
 pub async fn post_get_pages_by_title_id(
     State(data): State<Arc<AppState>>,
     query: Json<PageByTitleIdRequest>,
