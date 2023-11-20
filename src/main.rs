@@ -102,7 +102,7 @@ async fn main() {
         .route("/api/title/:title_id", get(get_title))
         .route("/api/pages", get(get_pages))
         .route("/api/page/:page_id", get(get_page))
-        .route("/api/page/by_title_id/", post(post_get_pages_by_title_id))
+        .route("/api/page/by_title_id/", post(post_pages_by_title_id))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 

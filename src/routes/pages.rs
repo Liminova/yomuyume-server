@@ -116,7 +116,7 @@ pub async fn get_page(
     (status = 200, description = "Fetch all pages for title successful.", body = PagesResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
 ))]
-pub async fn post_get_pages_by_title_id(
+pub async fn post_pages_by_title_id(
     State(data): State<Arc<AppState>>,
     query: Json<PageByTitleIdRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
