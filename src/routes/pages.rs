@@ -29,6 +29,10 @@ pub struct PageByTitleIdRequest {
     pub title_id: Uuid,
 }
 
+#[utoipa::path(get, path = "/api/pages", responses(
+    (status = 200, description = "Fetch all pages successful.", body = PagesResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse)
+))]
 pub async fn get_pages(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
@@ -59,6 +63,11 @@ pub async fn get_pages(
     ))
 }
 
+#[utoipa::path(get, path = "/api/page/{page_id}", responses(
+    (status = 200, description = "Fetch page successful.", body = PageResponse),
+    (status = 204, description = "Fetch page successful, but one was not found.", body = PageResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse)
+))]
 pub async fn get_page(
     State(data): State<Arc<AppState>>,
     Path(page_id): Path<Uuid>,
@@ -103,6 +112,10 @@ pub async fn get_page(
     }
 }
 
+#[utoipa::path(post, path = "/api/pages/by_title_id", responses(
+    (status = 200, description = "Fetch all pages for title successful.", body = PagesResponse),
+    (status = 500, description = "Internal server error.", body = ErrorResponse)
+))]
 pub async fn post_get_pages_by_title_id(
     State(data): State<Arc<AppState>>,
     query: Json<PageByTitleIdRequest>,
