@@ -86,7 +86,7 @@ pub async fn get_page(
         Some(p) => Ok((
             StatusCode::OK,
             Json(ApiResponse {
-                description: format!("Fetch category with id {} successful.", page_id),
+                description: format!("Fetch page with id {} successful.", page_id),
                 body: Some(PageResponseBody { data: p }),
             }),
         )),
@@ -94,7 +94,7 @@ pub async fn get_page(
             StatusCode::NO_CONTENT,
             Json(ApiResponse {
                 description: format!(
-                    "The server could not find any categories matching the id {}.",
+                    "The server could not find any pages matching the id {}.",
                     page_id
                 ),
                 body: None,
