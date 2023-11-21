@@ -24,11 +24,6 @@ pub struct PageResponseBody {
     pub data: Page,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
-pub struct PageByTitleIdRequest {
-    pub title_id: Uuid,
-}
-
 #[utoipa::path(get, path = "/api/pages", responses(
     (status = 200, description = "Fetch all pages successful.", body = PagesResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
@@ -112,18 +107,18 @@ pub async fn get_page(
     }
 }
 
-#[utoipa::path(post, path = "/api/pages/by_title_id", responses(
+#[utoipa::path(get, path = "/api/pages/by_title_id/{title_id}", responses(
     (status = 200, description = "Fetch all pages for title successful.", body = PagesResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
 ))]
-pub async fn post_pages_by_title_id(
+pub async fn get_pages_by_title_id(
     State(data): State<Arc<AppState>>,
-    query: Json<PageByTitleIdRequest>,
+    Path(title_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let pages = sqlx::query_as!(
         Page,
         r#"SELECT id as "id: uuid::Uuid", title_id as "title_id: uuid::Uuid", path, hash, width as "width: std::primitive::u32", height as "height: std::primitive::u32" FROM pages WHERE title_id = $1"#,
-        query.title_id
+        title_id
     )
     .fetch_all(&data.sqlite)
     .await
@@ -142,10 +137,7 @@ pub async fn post_pages_by_title_id(
     Ok((
         StatusCode::OK,
         Json(ApiResponse {
-            description: format!(
-                "Fetch all pages for title id {} successful.",
-                query.title_id
-            ),
+            description: format!("Fetch all pages for title id {} successful.", title_id),
             body: Some(PagesResponseBody { data: pages }),
         }),
     ))

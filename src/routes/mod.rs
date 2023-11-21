@@ -6,7 +6,7 @@ use crate::models::{category::Category, page::Page, title::Title, user::User};
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
     categories::{CategoriesResponseBody, CategoryResponseBody},
-    pages::{PageByTitleIdRequest, PageResponseBody, PagesResponseBody},
+    pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
     titles::{TitleResponseBody, TitlesResponseBody},
 };
@@ -55,7 +55,7 @@ pub struct ApiResponse<T> {
         categories::get_category,
         pages::get_pages,
         pages::get_page,
-        pages::post_pages_by_title_id,
+        pages::get_pages_by_title_id,
         status::get_status,
         status::post_status,
         titles::get_titles,
@@ -77,7 +77,6 @@ pub struct ApiResponse<T> {
         PageResponseBody,
         PagesResponse,
         PagesResponseBody,
-        PageByTitleIdRequest,
         RegisterResponse,
         RegisterResponseBody,
         RegisterRequest,
