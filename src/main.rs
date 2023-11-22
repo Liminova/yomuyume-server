@@ -4,26 +4,28 @@ use axum::{
     Router,
 };
 use routes::{auth::*, categories::*, pages::*, status::*, titles::*, *};
-use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Sqlite};
+use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
+use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::config::Config;
+use crate::{config::Config, migrator::Migrator};
 
 mod config;
 mod constants;
+mod migrator;
 mod models;
 mod routes;
 
 pub struct AppState {
-    sqlite: sqlx::Pool<Sqlite>,
+    db: DatabaseConnection,
     env: Config,
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), DbErr> {
     dotenvy::dotenv().ok();
     let config = Config::init();
 
@@ -33,57 +35,26 @@ async fn main() {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    if !Sqlite::database_exists(&config.database_url)
-        .await
-        .unwrap_or(false)
-    {
-        tracing::info!(
-            "cannot find database, initializing a new one at: {}",
-            &config.database_url
-        );
-        match Sqlite::create_database(&config.database_url).await {
-            Ok(_) => tracing::info!("created new database successfully."),
-            Err(e) => {
-                tracing::error!("error while creating database: {}", e);
-                std::process::exit(1);
-            }
-        }
-    }
-
-    let pool = match SqlitePoolOptions::new()
-        .max_connections(10)
-        .connect(&config.database_url)
-        .await
-    {
-        Ok(pool) => {
-            tracing::info!("connection to sqlite database successful.");
-            pool
-        }
-        Err(err) => {
-            tracing::error!("failed to connect to sqlite database: {:?}", err);
-            std::process::exit(1);
+    let db = Database::connect(config.database_url).await?;
+    let db = match db.get_database_backend() {
+        DbBackend::Sqlite => db,
+        _ => {
+            tracing::error!("we don't support other databases outside of sqlite. exiting.");
+            std::process::exit(1)
         }
     };
 
-    let crate_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let migrations = std::path::Path::new(&crate_dir).join("./migrations");
-
-    let migration_results = sqlx::migrate::Migrator::new(migrations)
-        .await
-        .unwrap()
-        .run(&pool)
-        .await;
-
-    match migration_results {
-        Ok(_) => tracing::info!("migrations successful!"),
-        Err(e) => {
-            tracing::error!("error during database migration: {}", e);
-            std::process::exit(1);
-        }
-    }
+    let schema_manager = SchemaManager::new(&db);
+    Migrator::refresh(&db).await?;
+    assert!(schema_manager.has_table("users").await?);
+    assert!(schema_manager.has_table("categories").await?);
+    assert!(schema_manager.has_table("titles").await?);
+    assert!(schema_manager.has_table("pages").await?);
+    assert!(schema_manager.has_table("tags").await?);
+    assert!(schema_manager.has_table("titles_tags").await?);
 
     let app_state = Arc::new(AppState {
-        sqlite: pool.clone(),
+        db,
         env: config.clone(),
     });
 
@@ -115,4 +86,6 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+
+    Ok(())
 }
