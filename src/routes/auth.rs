@@ -34,7 +34,6 @@ pub struct RegisterRequest {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct RegisterResponseBody {
-    #[serde(flatten)]
     pub user: User,
 }
 
