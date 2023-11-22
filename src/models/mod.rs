@@ -1,5 +1,9 @@
 pub mod auth;
-pub mod category;
-pub mod page;
-pub mod title;
-pub mod user;
+pub mod categories;
+pub mod pages;
+pub mod tags;
+pub mod titles;
+pub mod titles_tags;
+pub mod users;
+
+pub mod prelude;
