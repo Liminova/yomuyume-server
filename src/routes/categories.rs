@@ -43,7 +43,7 @@ pub async fn get_categories(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
-                description: String::from("An internal error has occurred."),
+                description: String::from("An internal server error has occurred."),
                 body: Some(ErrorResponseBody {
                     message: format!("Database error: {}", e),
                 }),
@@ -80,7 +80,7 @@ pub async fn get_category(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
-                description: String::from("An internal error has occurred."),
+                description: String::from("An internal server error has occurred."),
                 body: Some(ErrorResponseBody {
                     message: format!("Database error: {}", e),
                 }),

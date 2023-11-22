@@ -1,17 +1,19 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::models::{category::Category, title::Title};
+use crate::models::{category::Category, page::Page, title::Title, user::User};
 
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
     categories::{CategoriesResponseBody, CategoryResponseBody},
+    pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
     titles::{TitleResponseBody, TitlesResponseBody},
 };
 
 pub mod auth;
 pub mod categories;
+pub mod pages;
 pub mod status;
 pub mod titles;
 
@@ -27,6 +29,8 @@ pub struct ErrorResponseBody {
     CategoriesResponse = ApiResponse<CategoriesResponseBody>,
     ErrorResponse = ApiResponse<ErrorResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
+    PageResponse = ApiResponse<PageResponseBody>,
+    PagesResponse = ApiResponse<PagesResponseBody>,
     RegisterResponse = ApiResponse<RegisterResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
@@ -49,6 +53,9 @@ pub struct ApiResponse<T> {
         auth::get_logout,
         categories::get_categories,
         categories::get_category,
+        pages::get_pages,
+        pages::get_page,
+        pages::get_pages_by_title_id,
         status::get_status,
         status::post_status,
         titles::get_titles,
@@ -65,6 +72,11 @@ pub struct ApiResponse<T> {
         LoginResponse,
         LoginResponseBody,
         LoginRequest,
+        Page,
+        PageResponse,
+        PageResponseBody,
+        PagesResponse,
+        PagesResponseBody,
         RegisterResponse,
         RegisterResponseBody,
         RegisterRequest,
@@ -75,7 +87,8 @@ pub struct ApiResponse<T> {
         TitleResponse,
         TitleResponseBody,
         TitlesResponse,
-        TitlesResponseBody
+        TitlesResponseBody,
+        User,
     ))
 )]
 pub struct ApiDoc;
