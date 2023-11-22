@@ -6,11 +6,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use sea_orm::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{models::title::Title, AppState};
+use crate::{
+    models::{prelude::Titles, titles::Model as Title},
+    AppState,
+};
 
 use super::{ApiResponse, ErrorResponseBody};
 
@@ -33,21 +37,15 @@ pub struct TitleResponseBody {
 pub async fn get_titles(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let titles = sqlx::query_as!(
-        Title,
-        r#"SELECT id as "id: uuid::Uuid", title, category_id as "category_id: uuid::Uuid", author, description, release_date as "release_date: chrono::DateTime<chrono::Utc>", is_colored, is_completed, thumbnail FROM titles"#
-    )
-    .fetch_all(&data.sqlite)
-    .await
-    .map_err(|e| {
+    let titles: Vec<Title> = Titles::find().all(&data.db).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("An internal server error has occurred."),
                 body: Some(ErrorResponseBody {
                     message: format!("Database error: {}", e),
-                })
-            })
+                }),
+            }),
         )
     })?;
 
@@ -69,24 +67,20 @@ pub async fn get_title(
     State(data): State<Arc<AppState>>,
     Path(title_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let title = sqlx::query_as!(
-        Title,
-        r#"SELECT id as "id: uuid::Uuid", title, category_id as "category_id: uuid::Uuid", author, description, release_date as "release_date: chrono::DateTime<chrono::Utc>", is_colored, is_completed, thumbnail FROM titles WHERE id = $1"#,
-        title_id
-    )
-    .fetch_optional(&data.sqlite)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
-                })
-            })
-        )
-    })?;
+    let title: Option<Title> = Titles::find_by_id(title_id)
+        .one(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse {
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(ErrorResponseBody {
+                        message: format!("Database error: {}", e),
+                    }),
+                }),
+            )
+        })?;
 
     match title {
         Some(t) => Ok((

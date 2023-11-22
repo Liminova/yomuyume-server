@@ -6,11 +6,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use sea_orm::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{models::page::Page, AppState};
+use crate::{
+    models::{pages::Model as Page, prelude::Pages, titles},
+    AppState,
+};
 
 use super::{ApiResponse, ErrorResponseBody};
 
@@ -31,21 +35,15 @@ pub struct PageResponseBody {
 pub async fn get_pages(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let pages = sqlx::query_as!(
-        Page,
-        r#"SELECT id as "id: uuid::Uuid", title_id as "title_id: uuid::Uuid", path, hash, width as "width: std::primitive::u32", height as "height: std::primitive::u32" FROM pages"#
-    )
-    .fetch_all(&data.sqlite)
-    .await
-    .map_err(|e| {
+    let pages: Vec<Page> = Pages::find().all(&data.db).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("An internal server error has occurred."),
                 body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e)
-                })
-            })
+                    message: format!("Database error: {}", e),
+                }),
+            }),
         )
     })?;
 
@@ -67,24 +65,20 @@ pub async fn get_page(
     State(data): State<Arc<AppState>>,
     Path(page_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let page = sqlx::query_as!(
-        Page,
-        r#"SELECT id as "id: uuid::Uuid", title_id as "title_id: uuid::Uuid", path, hash, width as "width: std::primitive::u32", height as "height: std::primitive::u32" FROM pages WHERE id = $1"#,
-        page_id
-    )
-    .fetch_optional(&data.sqlite)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
+    let page: Option<Page> = Pages::find_by_id(page_id)
+        .one(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse {
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(ErrorResponseBody {
+                        message: format!("Database error: {}", e),
+                    }),
                 }),
-            }),
-        )
-    })?;
+            )
+        })?;
 
     match page {
         Some(p) => Ok((
@@ -115,24 +109,21 @@ pub async fn get_pages_by_title_id(
     State(data): State<Arc<AppState>>,
     Path(title_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let pages = sqlx::query_as!(
-        Page,
-        r#"SELECT id as "id: uuid::Uuid", title_id as "title_id: uuid::Uuid", path, hash, width as "width: std::primitive::u32", height as "height: std::primitive::u32" FROM pages WHERE title_id = $1"#,
-        title_id
-    )
-    .fetch_all(&data.sqlite)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
-                })
-            })
-        )
-    })?;
+    let pages: Vec<Page> = Pages::find()
+        .filter(titles::Column::Id.eq(title_id))
+        .all(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse {
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(ErrorResponseBody {
+                        message: format!("Database error: {}", e),
+                    }),
+                }),
+            )
+        })?;
 
     Ok((
         StatusCode::OK,
