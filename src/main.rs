@@ -35,7 +35,7 @@ async fn main() -> Result<(), DbErr> {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    let db = Database::connect(config.database_url).await?;
+    let db = Database::connect(&config.database_url).await?;
     let db = match db.get_database_backend() {
         DbBackend::Sqlite => db,
         _ => {
@@ -57,7 +57,6 @@ async fn main() -> Result<(), DbErr> {
         db,
         env: config.clone(),
     });
-
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/status", get(get_status).post(post_status))
