@@ -6,11 +6,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use sea_orm::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{models::category::Category, AppState};
+use crate::{
+    models::{categories::Model as Category, prelude::Categories},
+    AppState,
+};
 
 use super::{ApiResponse, ErrorResponseBody};
 
@@ -33,13 +37,7 @@ pub struct CategoryResponseBody {
 pub async fn get_categories(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let categories = sqlx::query_as!(
-        Category,
-        r#"SELECT id as "id: uuid::Uuid", name, description FROM categories"#
-    )
-    .fetch_all(&data.sqlite)
-    .await
-    .map_err(|e| {
+    let categories: Vec<Category> = Categories::find().all(&data.db).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
@@ -69,24 +67,20 @@ pub async fn get_category(
     State(data): State<Arc<AppState>>,
     Path(category_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let category = sqlx::query_as!(
-        Category,
-        r#"SELECT id as "id: uuid::Uuid", name, description FROM categories WHERE id = $1"#,
-        category_id
-    )
-    .fetch_optional(&data.sqlite)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
+    let category: Option<Category> = Categories::find_by_id(category_id)
+        .one(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse {
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(ErrorResponseBody {
+                        message: format!("Database error: {}", e),
+                    }),
                 }),
-            }),
-        )
-    })?;
+            )
+        })?;
 
     match category {
         Some(c) => Ok((

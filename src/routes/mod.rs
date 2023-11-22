@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::models::{category::Category, page::Page, title::Title, user::User};
+use crate::models::{
+    categories::Model as Category, pages::Model as Page, titles::Model as Title,
+    users::Model as User,
+};
 
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},

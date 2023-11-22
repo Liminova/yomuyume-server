@@ -14,11 +14,12 @@ use axum_extra::extract::{
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use rand_core::OsRng;
+use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    models::{auth::TokenClaims, user::User},
+    models::{auth::TokenClaims, prelude::Users, users, users::Model as User},
     AppState,
 };
 
@@ -110,24 +111,20 @@ pub async fn auth<B>(
         )
     })?;
 
-    let user = sqlx::query_as!(
-        User,
-        r#"SELECT id as "id: uuid::Uuid", username, email, password, profile_picture, created_at as "created_at: chrono::DateTime<chrono::Utc>", updated_at as "updated_at: chrono::DateTime<chrono::Utc>" FROM users WHERE id = $1"#,
-        user_id
-    )
-    .fetch_optional(&data.sqlite)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("Failed while fetching user from database."),
-                body: Some(ErrorResponseBody {
-                    message: format!("{}", e),
+    let user: Option<User> = Users::find_by_id(user_id)
+        .one(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse {
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(ErrorResponseBody {
+                        message: format!("Database error: {}", e),
+                    }),
                 }),
-            }),
-        )
-    })?;
+            )
+        })?;
 
     let user = user.ok_or_else(|| {
         (
@@ -154,9 +151,13 @@ pub async fn post_register(
     State(data): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let email_exists = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
-        .bind(query.email.to_owned().to_ascii_lowercase())
-        .fetch_one(&data.sqlite)
+    let email_exists: Option<User> = Users::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DatabaseBackend::Sqlite,
+            r#"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"#,
+            [query.email.clone().into()],
+        ))
+        .one(&data.db)
         .await
         .map_err(|e| {
             (
@@ -173,18 +174,16 @@ pub async fn post_register(
             )
         })?;
 
-    if let Some(exists) = email_exists {
-        if exists {
-            return Err((
-                StatusCode::CONFLICT,
-                Json(ApiResponse {
-                    description: String::from("A conflict has occurred on the server."),
-                    body: Some(ErrorResponseBody {
-                        message: String::from("An user with this email already exists."),
-                    }),
+    if email_exists.is_some() {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(ApiResponse {
+                description: String::from("A conflict has occurred on the server."),
+                body: Some(ErrorResponseBody {
+                    message: String::from("An user with this email already exists."),
                 }),
-            ));
-        }
+            }),
+        ));
     }
 
     let salt = SaltString::generate(&mut OsRng);
@@ -203,30 +202,30 @@ pub async fn post_register(
         })
         .map(|hash| hash.to_string())?;
 
-    let id = uuid::Uuid::new_v4();
+    let id = uuid::Uuid::new_v4().to_string();
     let username = query.username.to_string();
     let email = query.email.to_string().to_ascii_lowercase();
-    let created_at = chrono::Utc::now();
+    let created_at = chrono::Utc::now().to_string();
 
-    let user = sqlx::query_as!(
-        User,
-        r#"INSERT INTO users (id, username, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id as "id: uuid::Uuid", username, email, password, profile_picture, created_at as "created_at: chrono::DateTime<chrono::Utc>", updated_at as "updated_at: chrono::DateTime<chrono::Utc>""#,
-        id,
-        username,
-        email,
-        hashed_password,
-        created_at,
-        created_at
-    ).fetch_one(&data.sqlite)
-    .await.map_err(|e| {
+    let user = users::ActiveModel {
+        id: Set(id),
+        username: Set(username),
+        email: Set(email),
+        created_at: Set(created_at.clone()),
+        updated_at: Set(created_at),
+        password: Set(hashed_password),
+        ..Default::default()
+    };
+
+    let user = user.insert(&data.db).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 description: String::from("An internal server error has occurred."),
                 body: Some(ErrorResponseBody {
-                    message: format!("Failed to insert user into database. Database error: {}", e)
+                    message: format!("Failed to insert user into database. Database error: {}", e),
                 }),
-            })
+            }),
         )
     })?;
 
@@ -248,32 +247,32 @@ pub async fn post_login(
     State(data): State<Arc<AppState>>,
     query: Json<LoginRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let user = sqlx::query_as!(
-        User,
-        r#"SELECT id as "id: uuid::Uuid", username, email, password, profile_picture, created_at as "created_at: chrono::DateTime<chrono::Utc>", updated_at as "updated_at: chrono::DateTime<chrono::Utc>" FROM users WHERE username = $1"#,
-        query.login
-    ).fetch_optional(&data.sqlite).await.map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Failed to fetch user from database. Database error: {}", e),
-                })
-            })
-        )
-    })?
-    .ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(ApiResponse {
-                description: String::from("Server has received a bad request."),
+    let user: User = Users::find()
+        .filter(users::Column::Username.eq(&query.login))
+        .one(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse {
+                    description: String::from("An internal server error has occurred."),
+                    body: Some(ErrorResponseBody {
+                        message: format!("Database error: {}", e),
+                    }),
+                }),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(ApiResponse {
+                    description: String::from("Server has received a bad request."),
                     body: Some(ErrorResponseBody {
                         message: String::from("Invalid username or password."),
-                    })
-            })
-        )
-    })?;
+                    }),
+                }),
+            )
+        })?;
 
     let is_valid = match PasswordHash::new(&user.password) {
         Ok(parsed_hash) => Argon2::default()
