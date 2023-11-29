@@ -32,8 +32,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Titles::Author).string())
                     .col(ColumnDef::new(Titles::Description).string())
                     .col(ColumnDef::new(Titles::ReleaseDate).date_time())
-                    .col(ColumnDef::new(Titles::IsColored).boolean())
-                    .col(ColumnDef::new(Titles::IsCompleted).boolean())
                     .col(ColumnDef::new(Titles::Thumbnail).string())
                     .to_owned(),
             )
@@ -56,7 +54,5 @@ pub enum Titles {
     Author,
     Description,
     ReleaseDate,
-    IsColored,
-    IsCompleted,
     Thumbnail,
 }

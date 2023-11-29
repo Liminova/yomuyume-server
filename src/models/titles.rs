@@ -13,8 +13,6 @@ pub struct Model {
     pub author: Option<String>,
     pub description: Option<String>,
     pub release_date: Option<String>,
-    pub is_colored: Option<bool>,
-    pub is_completed: Option<bool>,
     pub thumbnail: Option<String>,
 }
 
