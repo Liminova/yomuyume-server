@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
+    body::Body,
     extract::State,
     http::{header, Request, StatusCode},
     middleware::Next,
@@ -48,11 +49,11 @@ pub struct LoginResponseBody {
     pub token: String,
 }
 
-pub async fn auth<B>(
+pub async fn auth(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
-    mut req: Request<B>,
-    next: Next<B>,
+    mut req: Request<Body>,
+    next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let token = cookie_jar
         .get("token")
@@ -308,12 +309,11 @@ pub async fn post_login(
     )
     .unwrap();
 
-    let cookie = Cookie::build("token", token.to_owned())
+    let cookie = Cookie::build(("token", token.to_owned()))
         .path("/")
         .max_age(time::Duration::minutes(&data.env.jwt_maxage * 60))
         .same_site(SameSite::Lax)
-        .http_only(true)
-        .finish();
+        .http_only(true);
 
     Ok((
         StatusCode::OK,
@@ -328,12 +328,11 @@ pub async fn post_login(
 #[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = ErrorResponse)))]
 pub async fn get_logout(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let cookie = Cookie::build("token", "")
+    let cookie = Cookie::build(("token", ""))
         .path("/")
         .max_age(time::Duration::hours(-1))
         .same_site(SameSite::Lax)
-        .http_only(true)
-        .finish();
+        .http_only(true);
 
     Ok((
         StatusCode::OK,

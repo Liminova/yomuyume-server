@@ -7,8 +7,10 @@ use routes::{auth::*, categories::*, pages::*, status::*, titles::*, *};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
+use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{config::Config, migrator::Migrator};
@@ -59,6 +61,7 @@ async fn main() -> Result<(), DbErr> {
     });
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .route("/api/status", get(get_status).post(post_status))
         .route("/api/auth/register", post(post_register))
         .route("/api/auth/login", post(post_login))
@@ -80,11 +83,9 @@ async fn main() -> Result<(), DbErr> {
         .with_state(app_state);
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
+    let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::debug!("listening on: {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let _ = axum::serve(listener, app.into_make_service()).await;
 
     Ok(())
 }
