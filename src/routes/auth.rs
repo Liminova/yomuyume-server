@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
+    body::Body,
     extract::State,
     http::{header, Request, StatusCode},
     middleware::Next,
@@ -48,11 +49,11 @@ pub struct LoginResponseBody {
     pub token: String,
 }
 
-pub async fn auth<B>(
+pub async fn auth(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
-    mut req: Request<B>,
-    next: Next<B>,
+    mut req: Request<Body>,
+    next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let token = cookie_jar
         .get("token")

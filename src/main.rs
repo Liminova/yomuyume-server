@@ -7,6 +7,7 @@ use routes::{auth::*, categories::*, pages::*, status::*, titles::*, *};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -80,11 +81,9 @@ async fn main() -> Result<(), DbErr> {
         .with_state(app_state);
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
+    let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::debug!("listening on: {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let _ = axum::serve(listener, app.into_make_service()).await;
 
     Ok(())
 }
