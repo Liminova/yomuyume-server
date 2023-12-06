@@ -20,13 +20,13 @@ pub mod pages;
 pub mod status;
 pub mod titles;
 
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
     /// The error message.
     pub message: String,
 }
 
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 #[aliases(
     CategoryResponse = ApiResponse<CategoryResponseBody>,
     CategoriesResponse = ApiResponse<CategoriesResponseBody>,
@@ -50,6 +50,32 @@ pub struct ApiResponse<T> {
 
 #[derive(OpenApi)]
 #[openapi(
+    info(
+        description = "yomuyume's backend documentations.",
+        license(name = "MIT or Apache-2.0"),
+    ),
+    tags(
+        (
+            name = "auth",
+            description = "all the routes related to authentication."
+        ),
+        (
+            name = "categories",
+            description = "all the routes related to fetching categories."
+        ),
+        (
+            name = "pages",
+            description = "all the routes related to fetching pages."
+        ),
+        (
+            name = "status",
+            description = "all the routes related to fetching backend status."
+        ),
+        (
+            name = "titles",
+            description = "all the routes related to fetching titles."
+        ),
+    ),
     paths(
         auth::post_login,
         auth::post_register,
