@@ -17,13 +17,7 @@ use crate::{
     AppState,
 };
 
-use super::{ApiResponse, ErrorResponseBody};
-
-#[derive(Serialize, ToSchema)]
-pub struct TitlesResponseBody {
-    /// A list of all fetched titles.
-    pub data: Vec<Title>,
-}
+use super::super::{ApiResponse, ErrorResponseBody};
 
 #[derive(Serialize, ToSchema)]
 pub struct TitleResponseBody {
@@ -31,29 +25,7 @@ pub struct TitleResponseBody {
     pub data: Title,
 }
 
-#[utoipa::path(get, path = "/api/titles", responses(
-    (status = 200, description = "Fetch all titles successful.", body = TitlesResponse),
-    (status = 500, description = "Internal server error.", body = ErrorResponse)
-))]
-pub async fn get_titles(
-    State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let titles: Vec<Title> = Titles::find().all(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
-            format!("Database error: {}", e),
-        )
-    })?;
-
-    Ok(build_resp(
-        StatusCode::OK,
-        String::from("Fetching all titles successful."),
-        Some(TitlesResponseBody { data: titles }),
-    ))
-}
-
-#[utoipa::path(get, path = "/api/title/{title_id}", responses(
+#[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
     (status = 200, description = "Fetch title successful.", body = TitleResponse),
     (status = 204, description = "Fetch title successful, but one was not found.", body = TitleResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
