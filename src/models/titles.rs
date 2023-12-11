@@ -35,6 +35,12 @@ pub enum Relation {
     TitlesTags,
     #[sea_orm(has_one = "super::thumbnails::Entity")]
     Thumbnails,
+    #[sea_orm(has_many = "super::bookmarks::Entity")]
+    Bookmarks,
+    #[sea_orm(has_many = "super::favorites::Entity")]
+    Favorites,
+    #[sea_orm(has_many = "super::progresses::Entity")]
+    Progresses,
 }
 
 impl Related<super::categories::Entity> for Entity {
@@ -61,4 +67,21 @@ impl Related<super::thumbnails::Entity> for Entity {
     }
 }
 
+impl Related<super::bookmarks::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Bookmarks.def()
+    }
+}
+
+impl Related<super::favorites::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Favorites.def()
+    }
+}
+
+impl Related<super::progresses::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Progresses.def()
+    }
+}
 impl ActiveModelBehavior for ActiveModel {}
