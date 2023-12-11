@@ -9,22 +9,30 @@ pub struct Config {
 }
 
 impl Config {
+    fn get_env(key: &str, default: Option<&str>) -> String {
+        match default {
+            Some(val) => std::env::var(key).unwrap_or(val.to_string()),
+            None => std::env::var(key).unwrap_or_else(|_| panic!("{} must be set.", key)),
+        }
+    }
+
     pub fn init() -> Self {
-        let server_address = std::env::var("SERVER_ADDRESS").unwrap_or("127.0.0.1".to_string());
-        let server_port = std::env::var("SERVER_PORT").unwrap_or(3000.to_string());
-        let database_url =
-            std::env::var("DATABASE_URL").unwrap_or("sqlite:./database/sqlite.db".to_string());
-        let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set.");
-        let jwt_expires_in = std::env::var("JWT_EXPIRES_IN").expect("JWT_EXPIRES_IN must be set.");
-        let jwt_maxage = std::env::var("JWT_MAXAGE").expect("JWT_MAXAGE must be set.");
+        let server_address = Self::get_env("SERVER_ADDRESS", Some("127.0.0.1"));
+        let server_port = Self::get_env("SERVER_PORT", Some("3000"))
+            .parse()
+            .unwrap_or(3000);
+        let database_url = Self::get_env("DATABASE_URL", Some("sqlite:./database/sqlite.db"));
+        let jwt_secret = Self::get_env("JWT_SECRET", None);
+        let jwt_expires_in = Self::get_env("JWT_EXPIRES_IN", None);
+        let jwt_maxage = Self::get_env("JWT_MAXAGE", None).parse().unwrap();
 
         Self {
             server_address,
-            server_port: server_port.parse().unwrap_or(3000),
+            server_port,
             database_url,
             jwt_secret,
             jwt_expires_in,
-            jwt_maxage: jwt_maxage.parse().unwrap(),
+            jwt_maxage,
         }
     }
 }
