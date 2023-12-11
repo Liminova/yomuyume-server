@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 use crate::{
     models::{auth::TokenClaims, prelude::Users, users, users::Model as User},
-    utils::build_resp::build_err_resp,
+    utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
 
@@ -191,12 +191,10 @@ pub async fn post_register(
         )
     })?;
 
-    Ok((
+    Ok(build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: String::from("Registration successful."),
-            body: Some(RegisterResponseBody { user }),
-        }),
+        String::from("Registration successful."),
+        RegisterResponseBody { user },
     ))
 }
 
