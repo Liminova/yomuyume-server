@@ -30,6 +30,7 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(Pages::Hash).string().not_null())
             .col(ColumnDef::new(Pages::Width).integer().not_null())
             .col(ColumnDef::new(Pages::Height).integer().not_null())
+            .col(ColumnDef::new(Pages::Description).string())
             .to_owned();
         manager.create_table(table).await
     }
@@ -49,4 +50,5 @@ pub enum Pages {
     Hash,
     Width,
     Height,
+    Description,
 }

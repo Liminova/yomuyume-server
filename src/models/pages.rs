@@ -13,6 +13,7 @@ pub struct Model {
     pub hash: String,
     pub width: i32,
     pub height: i32,
+    pub description: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
