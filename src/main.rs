@@ -20,6 +20,7 @@ mod constants;
 mod migrator;
 mod models;
 mod routes;
+mod utils;
 
 pub struct AppState {
     db: DatabaseConnection,

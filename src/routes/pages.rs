@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     models::{pages::Model as Page, prelude::Pages, titles},
+    utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
 
@@ -36,23 +37,17 @@ pub async fn get_pages(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let pages: Vec<Page> = Pages::find().all(&data.db).await.map_err(|e| {
-        (
+        build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
-                }),
-            }),
+            String::from("An internal server error has occurred."),
+            format!("Database error: {}", e),
         )
     })?;
 
-    Ok((
+    Ok(build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: String::from("Fetching all pages successful."),
-            body: Some(PagesResponseBody { data: pages }),
-        }),
+        String::from("Fetching all pages successful."),
+        Some(PagesResponseBody { data: pages }),
     ))
 }
 
@@ -69,36 +64,30 @@ pub async fn get_page(
         .one(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Database error: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Database error: {}", e),
             )
         })?;
 
-    match page {
-        Some(p) => Ok((
+    let resp = match page {
+        Some(p) => build_resp(
             StatusCode::OK,
-            Json(ApiResponse {
-                description: format!("Fetch page with id {} successful.", page_id),
-                body: Some(PageResponseBody { data: p }),
-            }),
-        )),
-        None => Ok((
+            format!("Fetch page with id {} successful.", page_id),
+            Some(PageResponseBody { data: p }),
+        ),
+        None => build_resp(
             StatusCode::NO_CONTENT,
-            Json(ApiResponse {
-                description: format!(
-                    "The server could not find any pages matching the id {}.",
-                    page_id
-                ),
-                body: None,
-            }),
-        )),
-    }
+            format!(
+                "The server could not find any pages matching the id {}.",
+                page_id
+            ),
+            None::<PageResponseBody>,
+        ),
+    };
+
+    Ok(resp)
 }
 
 #[utoipa::path(get, path = "/api/pages/by_title_id/{title_id}", responses(
@@ -114,22 +103,16 @@ pub async fn get_pages_by_title_id(
         .all(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Database error: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Database error: {}", e),
             )
         })?;
 
-    Ok((
+    Ok(build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: format!("Fetch all pages for title id {} successful.", title_id),
-            body: Some(PagesResponseBody { data: pages }),
-        }),
+        format!("Fetch all pages for title id {} successful.", title_id),
+        Some(PagesResponseBody { data: pages }),
     ))
 }

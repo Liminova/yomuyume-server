@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     models::{categories::Model as Category, prelude::Categories},
+    utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
 
@@ -38,23 +39,17 @@ pub async fn get_categories(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let categories: Vec<Category> = Categories::find().all(&data.db).await.map_err(|e| {
-        (
+        build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
-                }),
-            }),
+            String::from("An internal server error has occurred."),
+            format!("Database error: {}", e),
         )
     })?;
 
-    Ok((
+    Ok(build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: String::from("Fetching all categories successful."),
-            body: Some(CategoriesResponseBody { data: categories }),
-        }),
+        String::from("Fetching all categories successful."),
+        Some(CategoriesResponseBody { data: categories }),
     ))
 }
 
@@ -71,34 +66,28 @@ pub async fn get_category(
         .one(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Database error: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Database error: {}", e),
             )
         })?;
 
-    match category {
-        Some(c) => Ok((
+    let resp = match category {
+        Some(c) => build_resp(
             StatusCode::OK,
-            Json(ApiResponse {
-                description: format!("Fetch category with id {} successful.", category_id),
-                body: Some(CategoryResponseBody { data: c }),
-            }),
-        )),
-        None => Ok((
+            format!("Fetch category with id {} successful.", category_id),
+            Some(CategoryResponseBody { data: c }),
+        ),
+        None => build_resp(
             StatusCode::NO_CONTENT,
-            Json(ApiResponse {
-                description: format!(
-                    "The server could not find any categories matching the id {}.",
-                    category_id
-                ),
-                body: None,
-            }),
-        )),
-    }
+            format!(
+                "The server could not find any categories matching the id {}.",
+                category_id
+            ),
+            None::<CategoryResponseBody>,
+        ),
+    };
+
+    Ok(resp)
 }

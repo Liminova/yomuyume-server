@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::constants::version::get_version;
-use crate::ApiResponse;
+use crate::utils::build_resp::build_resp;
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct StatusResponseBody {
@@ -29,15 +29,13 @@ pub struct StatusRequest {
 pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let echo = query.echo.clone();
     let version = get_version();
-    (
+    build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: String::from("Status check successful."),
-            body: Some(StatusResponseBody {
-                server_time: chrono::Local::now(),
-                version,
-                echo,
-            }),
+        String::from("Status check successful."),
+        Some(StatusResponseBody {
+            server_time: chrono::Local::now(),
+            version,
+            echo,
         }),
     )
 }
@@ -46,15 +44,13 @@ pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
 pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoResponse {
     let echo = query.and_then(|q| q.echo.clone());
     let version = get_version();
-    (
+    build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: String::from("Status check successful."),
-            body: Some(StatusResponseBody {
-                server_time: chrono::Local::now(),
-                version,
-                echo,
-            }),
+        String::from("Status check successful."),
+        Some(StatusResponseBody {
+            server_time: chrono::Local::now(),
+            version,
+            echo,
         }),
     )
 }

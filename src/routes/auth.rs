@@ -21,6 +21,7 @@ use utoipa::ToSchema;
 
 use crate::{
     models::{auth::TokenClaims, prelude::Users, users, users::Model as User},
+    utils::build_resp::build_err_resp,
     AppState,
 };
 
@@ -70,14 +71,10 @@ pub async fn auth(
         });
 
     let token = token.ok_or_else(|| {
-        (
+        build_err_resp(
             StatusCode::UNAUTHORIZED,
-            Json(ApiResponse {
-                description: String::from("You're not authorized."),
-                body: Some(ErrorResponseBody {
-                    message: String::from("You're not logged in, please provide a token."),
-                }),
-            }),
+            String::from("You're not authorized."),
+            String::from("You're not logged in, please provide a token."),
         )
     })?;
 
@@ -87,27 +84,19 @@ pub async fn auth(
         &Validation::default(),
     )
     .map_err(|_| {
-        (
+        build_err_resp(
             StatusCode::UNAUTHORIZED,
-            Json(ApiResponse {
-                description: String::from("You're not authorized."),
-                body: Some(ErrorResponseBody {
-                    message: String::from("Invalid token."),
-                }),
-            }),
+            String::from("You're not authorized."),
+            String::from("Invalid token."),
         )
     })?
     .claims;
 
     let user_id = uuid::Uuid::parse_str(&claims.sub).map_err(|_| {
-        (
+        build_err_resp(
             StatusCode::UNAUTHORIZED,
-            Json(ApiResponse {
-                description: String::from("You're not authorized."),
-                body: Some(ErrorResponseBody {
-                    message: String::from("Invalid token."),
-                }),
-            }),
+            String::from("You're not authorized."),
+            String::from("Invalid token."),
         )
     })?;
 
@@ -115,26 +104,18 @@ pub async fn auth(
         .one(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Database error: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Database error: {}", e),
             )
         })?;
 
     let user = user.ok_or_else(|| {
-        (
+        build_err_resp(
             StatusCode::UNAUTHORIZED,
-            Json(ApiResponse {
-                description: String::from("You're not authorized."),
-                body: Some(ErrorResponseBody {
-                    message: String::from("The user belonging to this token no longer exists."),
-                }),
-            }),
+            String::from("You're not authorized."),
+            String::from("The user belonging to this token no longer exists."),
         )
     });
 
@@ -160,29 +141,18 @@ pub async fn post_register(
         .one(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!(
-                            "Failed to fetch user from database. Database error: {}",
-                            e
-                        ),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Failed to fetch user from database. Database error: {}", e),
             )
         })?;
 
     if email_exists.is_some() {
-        return Err((
+        return Err(build_err_resp(
             StatusCode::CONFLICT,
-            Json(ApiResponse {
-                description: String::from("A conflict has occurred on the server."),
-                body: Some(ErrorResponseBody {
-                    message: String::from("An user with this email already exists."),
-                }),
-            }),
+            String::from("A conflict has occurred on the server."),
+            String::from("An user with this email already exists."),
         ));
     }
 
@@ -190,14 +160,10 @@ pub async fn post_register(
     let hashed_password = Argon2::default()
         .hash_password(query.password.as_bytes(), &salt)
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Error while hashing password: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Error while hashing password: {}", e),
             )
         })
         .map(|hash| hash.to_string())?;
@@ -218,14 +184,10 @@ pub async fn post_register(
     };
 
     let user = user.insert(&data.db).await.map_err(|e| {
-        (
+        build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Failed to insert user into database. Database error: {}", e),
-                }),
-            }),
+            String::from("An internal server error has occurred."),
+            format!("Failed to insert user into database. Database error: {}", e),
         )
     })?;
 
@@ -252,25 +214,17 @@ pub async fn post_login(
         .one(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Database error: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Database error: {}", e),
             )
         })?
         .ok_or_else(|| {
-            (
+            build_err_resp(
                 StatusCode::BAD_REQUEST,
-                Json(ApiResponse {
-                    description: String::from("Server has received a bad request."),
-                    body: Some(ErrorResponseBody {
-                        message: String::from("Invalid username or password."),
-                    }),
-                }),
+                String::from("Server has received a bad request."),
+                String::from("Invalid username or password."),
             )
         })?;
 
@@ -282,14 +236,10 @@ pub async fn post_login(
     };
 
     if !is_valid {
-        return Err((
+        return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            Json(ApiResponse {
-                description: String::from("Server has received a bad request"),
-                body: Some(ErrorResponseBody {
-                    message: String::from("Invalid username or password."),
-                }),
-            }),
+            String::from("Server has received a bad request."),
+            String::from("Invalid username or password."),
         ));
     }
 

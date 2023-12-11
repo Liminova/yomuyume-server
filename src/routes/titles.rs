@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     models::{prelude::Titles, titles::Model as Title},
+    utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
 
@@ -38,23 +39,17 @@ pub async fn get_titles(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let titles: Vec<Title> = Titles::find().all(&data.db).await.map_err(|e| {
-        (
+        build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                description: String::from("An internal server error has occurred."),
-                body: Some(ErrorResponseBody {
-                    message: format!("Database error: {}", e),
-                }),
-            }),
+            String::from("An internal server error has occurred."),
+            format!("Database error: {}", e),
         )
     })?;
 
-    Ok((
+    Ok(build_resp(
         StatusCode::OK,
-        Json(ApiResponse {
-            description: String::from("Fetching all titles successful."),
-            body: Some(TitlesResponseBody { data: titles }),
-        }),
+        String::from("Fetching all titles successful."),
+        Some(TitlesResponseBody { data: titles }),
     ))
 }
 
@@ -71,34 +66,28 @@ pub async fn get_title(
         .one(&data.db)
         .await
         .map_err(|e| {
-            (
+            build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    description: String::from("An internal server error has occurred."),
-                    body: Some(ErrorResponseBody {
-                        message: format!("Database error: {}", e),
-                    }),
-                }),
+                String::from("An internal server error has occurred."),
+                format!("Database error: {}", e),
             )
         })?;
 
-    match title {
-        Some(t) => Ok((
+    let resp = match title {
+        Some(t) => build_resp(
             StatusCode::OK,
-            Json(ApiResponse {
-                description: format!("Fetch title with id {} successful.", title_id),
-                body: Some(TitleResponseBody { data: t }),
-            }),
-        )),
-        None => Ok((
+            format!("Fetch title with id {} successful.", title_id),
+            Some(TitleResponseBody { data: t }),
+        ),
+        None => build_resp(
             StatusCode::NO_CONTENT,
-            Json(ApiResponse {
-                description: format!(
-                    "The server could not find any titles matching the id {}.",
-                    title_id
-                ),
-                body: None,
-            }),
-        )),
-    }
+            format!(
+                "The server could not find any titles matching the id {}.",
+                title_id
+            ),
+            None::<TitleResponseBody>,
+        ),
+    };
+
+    Ok(resp)
 }
