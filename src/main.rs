@@ -3,7 +3,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use routes::{auth::*, categories::*, pages::*, status::*, titles::*, *};
+use routes::{auth::*, index::*, pages::*, status::*, *};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
@@ -60,6 +60,7 @@ async fn main() -> Result<(), DbErr> {
         db,
         env: config.clone(),
     });
+
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
@@ -70,10 +71,9 @@ async fn main() -> Result<(), DbErr> {
             "/api/auth/logout",
             get(get_logout).route_layer(middleware::from_fn_with_state(app_state.clone(), auth)),
         )
-        .route("/api/categories", get(get_categories))
-        .route("/api/category/:category_id", get(get_category))
-        .route("/api/titles", get(get_titles))
-        .route("/api/title/:title_id", get(get_title))
+        .route("/api/intex/filter", post(filter::post_filter))
+        .route("/api/index/categories", get(categories::get_categories))
+        .route("/api/title/:title_id", get(title::get_title))
         .route("/api/pages", get(get_pages))
         .route("/api/page/:page_id", get(get_page))
         .route(
