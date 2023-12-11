@@ -23,6 +23,7 @@ impl MigrationTrait for Migration {
             )
             .col(ColumnDef::new(Categories::Name).string().not_null())
             .col(ColumnDef::new(Categories::Description).string())
+            .col(ColumnDef::new(Categories::Thumbnail).string())
             .to_owned();
         manager.create_table(table).await
     }
@@ -39,4 +40,5 @@ pub enum Categories {
     Id,
     Name,
     Description,
+    Thumbnail,
 }
