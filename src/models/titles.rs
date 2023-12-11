@@ -11,10 +11,10 @@ pub struct Model {
     pub title: String,
     pub title_image: Option<String>,
     pub categories_id: Option<String>,
+    pub thumbnail_id: String,
     pub author: Option<String>,
     pub description: Option<String>,
     pub release_date: Option<String>,
-    pub thumbnail: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -31,6 +31,8 @@ pub enum Relation {
     Pages,
     #[sea_orm(has_many = "super::titles_tags::Entity")]
     TitlesTags,
+    #[sea_orm(has_one = "super::thumbnails::Entity")]
+    Thumbnails,
 }
 
 impl Related<super::categories::Entity> for Entity {
@@ -48,6 +50,12 @@ impl Related<super::pages::Entity> for Entity {
 impl Related<super::titles_tags::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::TitlesTags.def()
+    }
+}
+
+impl Related<super::thumbnails::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Thumbnails.def()
     }
 }
 
