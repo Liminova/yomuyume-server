@@ -8,17 +8,19 @@ use crate::models::{
 
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
-    categories::{CategoriesResponseBody, CategoryResponseBody},
+    index::{
+        categories::CategoriesResponseBody,
+        filter::{FilterRequest, FilterResponseBody},
+        title::TitleResponseBody,
+    },
     pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
-    titles::{TitleResponseBody, TitlesResponseBody},
 };
 
 pub mod auth;
-pub mod categories;
+pub mod index;
 pub mod pages;
 pub mod status;
-pub mod titles;
 
 #[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
@@ -28,7 +30,6 @@ pub struct ErrorResponseBody {
 
 #[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 #[aliases(
-    CategoryResponse = ApiResponse<CategoryResponseBody>,
     CategoriesResponse = ApiResponse<CategoriesResponseBody>,
     ErrorResponse = ApiResponse<ErrorResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
@@ -37,7 +38,7 @@ pub struct ErrorResponseBody {
     RegisterResponse = ApiResponse<RegisterResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
-    TitlesResponse = ApiResponse<TitlesResponseBody>,
+    FilterResponse = ApiResponse<FilterResponseBody>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -60,44 +61,33 @@ pub struct ApiResponse<T> {
             description = "all the routes related to authentication."
         ),
         (
-            name = "categories",
-            description = "all the routes related to fetching categories."
-        ),
-        (
-            name = "pages",
-            description = "all the routes related to fetching pages."
-        ),
-        (
             name = "status",
             description = "all the routes related to fetching backend status."
         ),
         (
-            name = "titles",
-            description = "all the routes related to fetching titles."
-        ),
+            name = "index",
+            description = "all the routes related to fetching index data."
+        )
     ),
     paths(
         auth::post_login,
         auth::post_register,
         auth::get_logout,
-        categories::get_categories,
-        categories::get_category,
-        pages::get_pages,
-        pages::get_page,
-        pages::get_pages_by_title_id,
+        index::categories::get_categories,
+        index::filter::post_filter,
+        index::title::get_title,
         status::get_status,
         status::post_status,
-        titles::get_titles,
-        titles::get_title,
     ),
     components(schemas(
         Category,
-        CategoryResponse,
-        CategoryResponseBody,
         CategoriesResponse,
         CategoriesResponseBody,
         ErrorResponse,
         ErrorResponseBody,
+        FilterRequest,
+        FilterResponse,
+        FilterResponseBody,
         LoginResponse,
         LoginResponseBody,
         LoginRequest,
@@ -115,8 +105,6 @@ pub struct ApiResponse<T> {
         Title,
         TitleResponse,
         TitleResponseBody,
-        TitlesResponse,
-        TitlesResponseBody,
         User,
     ))
 )]
