@@ -12,28 +12,24 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .create_table(
-                Table::create()
-                    .table(Categories::Table)
-                    .if_not_exists()
-                    .col(
-                        ColumnDef::new(Categories::Id)
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(ColumnDef::new(Categories::Name).string().not_null())
-                    .col(ColumnDef::new(Categories::Description).string())
-                    .to_owned(),
+        let table = Table::create()
+            .table(Categories::Table)
+            .if_not_exists()
+            .col(
+                ColumnDef::new(Categories::Id)
+                    .uuid()
+                    .not_null()
+                    .primary_key(),
             )
-            .await
+            .col(ColumnDef::new(Categories::Name).string().not_null())
+            .col(ColumnDef::new(Categories::Description).string())
+            .to_owned();
+        manager.create_table(table).await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_table(Table::drop().table(Categories::Table).to_owned())
-            .await
+        let table = Table::drop().table(Categories::Table).to_owned();
+        manager.drop_table(table).await
     }
 }
 
