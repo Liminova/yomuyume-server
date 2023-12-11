@@ -202,6 +202,7 @@ pub async fn post_register(
     (status = 200, description = "Login successful.", body = LoginResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
     (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
+    (status = 400, description = "Bad request.", body = ErrorResponse),
 ))]
 pub async fn post_login(
     State(data): State<Arc<AppState>>,
