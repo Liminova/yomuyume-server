@@ -10,7 +10,7 @@ pub struct Model {
     pub id: String,
     pub title: String,
     pub title_image: Option<String>,
-    pub categories_id: Option<String>,
+    pub category_id: String,
     pub thumbnail_id: String,
     pub author: Option<String>,
     pub description: Option<String>,
@@ -23,7 +23,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::categories::Entity",
-        from = "Column::CategoriesId",
+        from = "Column::CategoryId",
         to = "super::categories::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
