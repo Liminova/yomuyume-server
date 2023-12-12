@@ -48,7 +48,6 @@ pub struct ApiResponse<T> {
     #[serde(flatten)]
     pub body: Option<T>,
 }
-
 #[derive(OpenApi)]
 #[openapi(
     info(
@@ -73,9 +72,9 @@ pub struct ApiResponse<T> {
         auth::post_login,
         auth::post_register,
         auth::get_logout,
-        index::categories::get_categories,
-        index::filter::post_filter,
-        index::title::get_title,
+        index::get_categories,
+        index::post_filter,
+        index::get_title,
         status::get_status,
         status::post_status,
     ),
