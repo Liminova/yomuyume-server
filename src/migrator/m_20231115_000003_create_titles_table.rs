@@ -19,11 +19,11 @@ impl MigrationTrait for Migration {
             .if_not_exists()
             .col(ColumnDef::new(Titles::Id).uuid().not_null().primary_key())
             .col(ColumnDef::new(Titles::Title).string().not_null())
-            .col(ColumnDef::new(Titles::CategoriesId).string())
+            .col(ColumnDef::new(Titles::CategoryId).string())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-title-category_id")
-                    .from(Titles::Table, Titles::CategoriesId)
+                    .from(Titles::Table, Titles::CategoryId)
                     .to(Categories::Table, Categories::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
@@ -48,7 +48,7 @@ pub enum Titles {
     Table,
     Id,
     Title,
-    CategoriesId,
+    CategoryId,
     Author,
     Description,
     ReleaseDate,
