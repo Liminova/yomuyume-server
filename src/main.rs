@@ -3,6 +3,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use middleware::from_fn_with_state;
 use routes::{auth::*, index::*, pages::*, status::*, *};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
@@ -69,16 +70,32 @@ async fn main() -> Result<(), DbErr> {
         .route("/api/auth/login", post(post_login))
         .route(
             "/api/auth/logout",
-            get(get_logout).route_layer(middleware::from_fn_with_state(app_state.clone(), auth)),
+            get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
-        .route("/api/intex/filter", post(filter::post_filter))
-        .route("/api/index/categories", get(categories::get_categories))
-        .route("/api/title/:title_id", get(title::get_title))
-        .route("/api/pages", get(get_pages))
-        .route("/api/page/:page_id", get(get_page))
+        .route(
+            "/api/intex/filter",
+            post(filter::post_filter).route_layer(from_fn_with_state(app_state.clone(), auth)),
+        )
+        .route(
+            "/api/index/categories",
+            get(categories::get_categories)
+                .route_layer(from_fn_with_state(app_state.clone(), auth)),
+        )
+        .route(
+            "/api/title/:title_id",
+            get(title::get_title).route_layer(from_fn_with_state(app_state.clone(), auth)),
+        )
+        .route(
+            "/api/pages",
+            get(get_pages).route_layer(from_fn_with_state(app_state.clone(), auth)),
+        )
+        .route(
+            "/api/page/:page_id",
+            get(get_page).route_layer(from_fn_with_state(app_state.clone(), auth)),
+        )
         .route(
             "/api/pages/by_title_id/:title_id",
-            get(get_pages_by_title_id),
+            get(get_pages_by_title_id).route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
