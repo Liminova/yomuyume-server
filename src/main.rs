@@ -1,5 +1,5 @@
 use axum::{
-    middleware::{self, from_fn_with_state},
+    middleware::from_fn_with_state,
     routing::{get, post},
     Router,
 };
