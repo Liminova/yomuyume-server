@@ -10,6 +10,7 @@ use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
@@ -56,6 +57,12 @@ async fn main() -> Result<(), DbErr> {
     assert!(schema_manager.has_table("pages").await?);
     assert!(schema_manager.has_table("tags").await?);
     assert!(schema_manager.has_table("titles_tags").await?);
+    assert!(schema_manager.has_table("bookmarks").await?);
+    assert!(schema_manager.has_table("thumbnails").await?);
+    assert!(schema_manager.has_table("favorites").await?);
+    assert!(schema_manager.has_table("progresses").await?);
+
+    info!("database migrations complete!");
 
     let app_state = Arc::new(AppState {
         db,
