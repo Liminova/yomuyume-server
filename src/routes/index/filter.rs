@@ -164,7 +164,7 @@ async fn find_favorite_count(db: &DatabaseConnection, title_id: String) -> u32 {
     }
 }
 
-#[utoipa::path(get, path = "/api/index/filter", responses(
+#[utoipa::path(post, path = "/api/index/filter", responses(
     (status = 200, description = "Fetch all items successful.", body = CategoriesResponse),
     (status = 204, description = "Fetch all items successful, but none were found.", body = CategoriesResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
