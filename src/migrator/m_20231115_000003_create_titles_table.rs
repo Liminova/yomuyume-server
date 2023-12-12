@@ -31,6 +31,8 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(Titles::Description).string())
             .col(ColumnDef::new(Titles::ReleaseDate).date_time())
             .col(ColumnDef::new(Titles::Thumbnail).string())
+            .col(ColumnDef::new(Titles::DateAdded).date_time())
+            .col(ColumnDef::new(Titles::DateUpdated).date_time())
             .to_owned();
         manager.create_table(table).await
     }
@@ -51,4 +53,6 @@ pub enum Titles {
     Description,
     ReleaseDate,
     Thumbnail,
+    DateAdded,
+    DateUpdated,
 }
