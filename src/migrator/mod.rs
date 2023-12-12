@@ -8,6 +8,7 @@ mod m_20231115_000004_create_pages_table;
 mod m_20231116_000005_create_tags_table;
 mod m_20231116_000006_create_titles_tags_table;
 mod m_20231212_000007_create_bookmarks_table;
+mod m_20231212_000008_create_thumbnails_table;
 
 pub struct Migrator;
 
@@ -22,6 +23,7 @@ impl MigratorTrait for Migrator {
             Box::new(m_20231116_000005_create_tags_table::Migration),
             Box::new(m_20231116_000006_create_titles_tags_table::Migration),
             Box::new(m_20231212_000007_create_bookmarks_table::Migration),
+            Box::new(m_20231212_000008_create_thumbnails_table::Migration),
         ]
     }
 }
