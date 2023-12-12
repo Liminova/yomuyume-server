@@ -234,14 +234,14 @@ pub async fn post_filter(
             )
         })?;
 
-    let mut response_data: Vec<FilterTitleResponseBody> = vec![];
+    let mut resp_data: Vec<FilterTitleResponseBody> = vec![];
 
     for title in found_titles {
         let tag_ids = find_title_tag_ids(&data.db, title.id.clone()).await;
         let page_count = find_page_count(&data.db, title.id.clone()).await;
         let favorite = find_favorite_count(&data.db, title.id.clone()).await;
         let page_read = find_page_read(&data.db, title.id.clone()).await;
-        response_data.push(FilterTitleResponseBody {
+        resp_data.push(FilterTitleResponseBody {
             id: query.set_str("id", title.id),
             title: query.set_str("title", title.title),
             author: query.set_option_str("author", title.author),
@@ -257,7 +257,7 @@ pub async fn post_filter(
         });
     }
 
-    let result = match response_data.is_empty() {
+    let resp = match resp_data.is_empty() {
         true => build_resp(
             StatusCode::NO_CONTENT,
             String::from("Fetching all items successful, but none were found."),
@@ -267,10 +267,10 @@ pub async fn post_filter(
             StatusCode::OK,
             String::from("Fetching all items successful."),
             Some(FilterResponseBody {
-                data: response_data,
+                data: resp_data,
             }),
         ),
     };
 
-    Ok(result)
+    Ok(resp)
 }
