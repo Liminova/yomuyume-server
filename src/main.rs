@@ -1,9 +1,8 @@
 use axum::{
-    middleware,
+    middleware::{self, from_fn_with_state},
     routing::{get, post},
     Router,
 };
-use middleware::from_fn_with_state;
 use routes::{auth::*, index::*, pages::*, status::*, *};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
