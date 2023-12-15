@@ -132,12 +132,8 @@ pub async fn post_register(
     State(data): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let email_exists: Option<User> = Users::find()
-        .from_raw_sql(Statement::from_sql_and_values(
-            DatabaseBackend::Sqlite,
-            r#"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"#,
-            [query.email.clone().into()],
-        ))
+    let email_exists = User::find()
+        .filter(users::Column::Email.eq(&query.email.to_string().to_ascii_lowercase()))
         .one(&data.db)
         .await
         .map_err(|e| {
