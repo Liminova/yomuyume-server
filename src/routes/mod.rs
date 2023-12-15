@@ -15,12 +15,14 @@ use self::{
     },
     pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
+    user::CheckRequest,
 };
 
 pub mod auth;
 pub mod index;
 pub mod pages;
 pub mod status;
+pub mod user;
 
 #[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
@@ -39,6 +41,7 @@ pub struct ErrorResponseBody {
     StatusResponse = ApiResponse<StatusResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
     FilterResponse = ApiResponse<FilterResponseBody>,
+    CheckResponse = ApiResponse<CheckRequest>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -66,12 +69,17 @@ pub struct ApiResponse<T> {
         (
             name = "index",
             description = "all the routes related to fetching index data."
-        )
+        ),
+        (
+            name = "user",
+            description = "all the routes related to fetching pages data."
+        ),
     ),
     paths(
         auth::post_login,
         auth::post_register,
         auth::get_logout,
+        user::get_check,
         index::get_categories,
         index::post_filter,
         index::get_title,
