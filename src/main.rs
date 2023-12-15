@@ -3,18 +3,18 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use routes::{auth::*, index::*, pages::*, status::*, *};
+use routes::{auth::*, index::*, pages::*, status::*, user::*};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{config::Config, migrator::Migrator};
+use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
 
 mod config;
 mod constants;
@@ -68,42 +68,58 @@ async fn main() -> Result<(), DbErr> {
         env: config.clone(),
     });
 
-    let app = Router::new()
-        .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
-        .route("/api/status", get(get_status).post(post_status))
-        .route("/api/auth/register", post(post_register))
-        .route("/api/auth/login", post(post_login))
+    let auth_routes = Router::new()
+        .route("/register", post(post_register))
+        .route("/login", post(post_login))
         .route(
-            "/api/auth/logout",
+            "/logout",
             get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
+        );
+
+    let user_routes = Router::new().route(
+        "/check",
+        get(get_check).route_layer(from_fn_with_state(app_state.clone(), auth)),
+    );
+
+    let index_routes = Router::new()
         .route(
-            "/api/intex/filter",
+            "/filter",
             post(filter::post_filter).route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
         .route(
-            "/api/index/categories",
+            "/categories",
             get(categories::get_categories)
                 .route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
         .route(
-            "/api/title/:title_id",
+            "/title/:title_id",
             get(title::get_title).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
+        );
+
+    let pages_routes = Router::new()
         .route(
-            "/api/pages",
+            "/pages",
             get(get_pages).route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
         .route(
-            "/api/page/:page_id",
+            "/page/:page_id",
             get(get_page).route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
         .route(
-            "/api/pages/by_title_id/:title_id",
+            "/pages/by_title_id/:title_id",
             get(get_pages_by_title_id).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
+        );
+
+    let app = Router::new()
+        .nest("/api/auth", auth_routes)
+        .nest("/api/index", index_routes)
+        .nest("/api/pages", pages_routes)
+        .nest("/api/user", user_routes)
+        .route("/api/status", get(get_status).post(post_status))
+        .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
         .with_state(app_state);
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
