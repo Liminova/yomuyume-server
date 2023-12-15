@@ -15,7 +15,7 @@ use self::{
     },
     pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
-    user::CheckRequest,
+    user::CheckResponseBody,
 };
 
 pub mod auth;
@@ -41,7 +41,7 @@ pub struct ErrorResponseBody {
     StatusResponse = ApiResponse<StatusResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
     FilterResponse = ApiResponse<FilterResponseBody>,
-    CheckResponse = ApiResponse<CheckRequest>,
+    CheckResponse = ApiResponse<CheckResponseBody>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -113,6 +113,7 @@ pub struct ApiResponse<T> {
         TitleResponse,
         TitleResponseBody,
         User,
+        CheckResponse,
     ))
 )]
 pub struct ApiDoc;
