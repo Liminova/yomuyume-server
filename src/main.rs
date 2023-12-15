@@ -76,39 +76,21 @@ async fn main() -> Result<(), DbErr> {
             get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth)),
         );
 
-    let user_routes = Router::new().route(
-        "/check",
-        get(get_check).route_layer(from_fn_with_state(app_state.clone(), auth)),
-    );
+    let user_routes = Router::new()
+        .route("/check", get(get_check))
+        .layer(from_fn_with_state(app_state.clone(), auth));
 
     let index_routes = Router::new()
-        .route(
-            "/filter",
-            post(filter::post_filter).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
-        .route(
-            "/categories",
-            get(categories::get_categories)
-                .route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
-        .route(
-            "/title/:title_id",
-            get(title::get_title).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        );
+        .route("/filter", post(filter::post_filter))
+        .route("/categories", get(categories::get_categories))
+        .route("/title/:title_id", get(title::get_title))
+        .layer(from_fn_with_state(app_state.clone(), auth));
 
     let pages_routes = Router::new()
-        .route(
-            "/pages",
-            get(get_pages).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
-        .route(
-            "/page/:page_id",
-            get(get_page).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        )
-        .route(
-            "/pages/by_title_id/:title_id",
-            get(get_pages_by_title_id).route_layer(from_fn_with_state(app_state.clone(), auth)),
-        );
+        .route("/pages", get(get_pages))
+        .route("/page/:page_id", get(get_page))
+        .route("/pages/by_title_id/:title_id", get(get_pages_by_title_id))
+        .layer(from_fn_with_state(app_state.clone(), auth));
 
     let app = Router::new()
         .nest("/api/auth", auth_routes)
