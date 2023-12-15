@@ -266,9 +266,7 @@ pub async fn post_filter(
         false => build_resp(
             StatusCode::OK,
             String::from("Fetching all items successful."),
-            Some(FilterResponseBody {
-                data: resp_data,
-            }),
+            Some(FilterResponseBody { data: resp_data }),
         ),
     };
 
