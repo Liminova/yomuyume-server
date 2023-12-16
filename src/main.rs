@@ -38,7 +38,11 @@ async fn main() -> Result<(), DbErr> {
     let addr_str = format!("{}:{}", config.server_address, config.server_port);
 
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(match std::env::var("PROFILE").ok().unwrap().as_str() {
+            "debug" => tracing::Level::DEBUG,
+            "release" => tracing::Level::INFO,
+            _ => unreachable!(),
+        })
         .init();
 
     let db = Database::connect(&config.database_url).await?;
@@ -108,7 +112,7 @@ async fn main() -> Result<(), DbErr> {
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
     let listener = TcpListener::bind(&addr).await.unwrap();
-    tracing::debug!("listening on: {}", addr);
+    tracing::info!("yomuyume backend listening on: {}", addr);
     let _ = axum::serve(listener, app.into_make_service()).await;
 
     Ok(())
