@@ -1,18 +1,20 @@
+use std::{net::SocketAddr, sync::Arc};
+
 use axum::{
     middleware::from_fn_with_state,
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
-use routes::{auth::*, index::*, pages::*, status::*, user::*};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
-use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
+
+use routes::{auth::*, index::*, pages::*, status::*, user::*};
 
 use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
 
