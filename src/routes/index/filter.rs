@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
-use crate::{
-    utils::build_resp::{build_err_resp, build_resp},
-    AppState,
-};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::super::{ApiResponse, ErrorResponseBody};
 use crate::models::{progresses, titles, titles_tags};
+use crate::{
+    utils::build_resp::{build_err_resp, build_resp},
+    AppState,
+};
+
+use super::super::{ApiResponse, ErrorResponseBody};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct FilterRequest {
@@ -165,8 +166,8 @@ async fn find_favorite_count(db: &DatabaseConnection, title_id: String) -> u32 {
 }
 
 #[utoipa::path(post, path = "/api/index/filter", responses(
-    (status = 200, description = "Fetch all items successful.", body = CategoriesResponse),
-    (status = 204, description = "Fetch all items successful, but none were found.", body = CategoriesResponse),
+    (status = 200, description = "Fetch all items successful.", body = FilterResponse),
+    (status = 204, description = "Fetch all items successful, but none were found.", body = FilterResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
 ))]
 pub async fn post_filter(
