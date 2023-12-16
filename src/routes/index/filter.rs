@@ -23,36 +23,7 @@ pub struct FilterRequest {
     /// Tags to filter by
     tag_ids: Option<Vec<i32>>,
     /// Maximum number of results to return
-impl FilterRequest {
-    pub fn set_str(&self, field: &str, value: String) -> String {
-        if self.fields.is_empty() || self.fields.contains(&String::from(field)) {
-            return value;
-        }
-        String::from("")
-    }
-    pub fn set_option_str(&self, field: &str, value: Option<String>) -> String {
-        match value {
-            Some(value) => {
-                if self.fields.is_empty() || self.fields.contains(&String::from(field)) {
-                    return value;
-                }
-                String::from("")
-            }
-            None => String::from(""),
-        }
-    }
-    pub fn set_vec_i32(&self, field: &str, value: Vec<i32>) -> Vec<i32> {
-        if self.fields.is_empty() || self.fields.contains(&String::from(field)) {
-            return value;
-        }
-        vec![]
-    }
-    pub fn set_u32(&self, field: &str, value: u32) -> u32 {
-        if self.fields.is_empty() || self.fields.contains(&String::from(field)) {
-            return value;
-        }
-        0
-    }
+    limit: Option<u32>,
 }
 
 #[derive(Serialize, ToSchema)]
