@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-
-use crate::models::{progresses, titles, titles_tags};
 use crate::{
     utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, QuerySelect, QueryTrait};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use super::super::{ApiResponse, ErrorResponseBody};
+use crate::models::{titles, titles_tags};
+
 use crate::utils::find_title_info::*;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -56,11 +56,12 @@ pub async fn post_filter(
     Extension(user): Extension<crate::models::users::Model>,
     Json(query): Json<FilterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let keywords = query.keywords.to_vec();
-    let category_ids = query.category_ids.to_vec();
-    let tag_ids: Vec<i32> = query.tag_ids.to_vec();
+    let keywords = query.keywords;
+    let category_ids = query.category_ids;
+    let tag_ids = query.tag_ids;
+    let limit = query.limit;
 
-    if keywords.is_empty() && category_ids.is_empty() && tag_ids.is_empty() {
+    if keywords.is_none() && category_ids.is_none() && tag_ids.is_none() {
         return Ok(build_resp(
             StatusCode::NO_CONTENT,
             String::from("Fetching all items successful, but none were found."),
@@ -70,24 +71,24 @@ pub async fn post_filter(
 
     let mut condition = Condition::any();
 
-    if !category_ids.is_empty() {
+    if let Some(category_ids) = category_ids {
         for category_id in category_ids {
             condition = condition.add(titles::Column::CategoryId.eq(category_id));
         }
     }
 
-    if !keywords.is_empty() {
+    if let Some(keywords) = keywords {
         for keyword in keywords {
             condition = condition
-                .add(titles::Column::Title.contains(keyword.clone().to_lowercase()))
-                .add(titles::Column::Author.contains(keyword.clone().to_lowercase()))
-                .add(titles::Column::Description.contains(keyword.clone().to_lowercase()));
+                .add(titles::Column::Title.contains(keyword.to_lowercase()))
+                .add(titles::Column::Author.contains(keyword.to_lowercase()))
+                .add(titles::Column::Description.contains(keyword.to_lowercase()));
         }
     }
 
-    if !tag_ids.is_empty() {
+    if let Some(tag_ids) = tag_ids {
         for tag_id in tag_ids {
-            let titles_tags = titles_tags::Entity::find()
+            let title_tag_has_tag_id = titles_tags::Entity::find()
                 .filter(titles_tags::Column::TagId.eq(tag_id))
                 .all(&data.db)
                 .await
@@ -99,13 +100,14 @@ pub async fn post_filter(
                     )
                 })?;
 
-            for titles_tag in titles_tags {
-                condition = condition.add(titles::Column::Id.eq(titles_tag.title_id));
+            for entity in title_tag_has_tag_id {
+                condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
         }
     }
 
     let found_titles = titles::Entity::find()
+        .apply_if(limit.map(|limit| limit as u64), QuerySelect::limit)
         .filter(condition)
         .all(&data.db)
         .await
@@ -120,23 +122,21 @@ pub async fn post_filter(
     let mut resp_data: Vec<FilterTitleResponseBody> = vec![];
 
     for title in found_titles {
-        let tag_ids = find_title_tag_ids(&data.db, title.id.clone()).await;
-        let page_count = find_page_count(&data.db, title.id.clone()).await;
-        let favorite = find_favorite_count(&data.db, title.id.clone()).await;
-        let page_read = find_page_read(&data.db, title.id.clone()).await;
+        let page_count = find_page_count(&data.db, &title.id).await;
+        let favorite_count = find_favorite_count(&data.db, &title.id).await;
+        let page_read = find_page_read(&data.db, &title.id, &user.id).await;
         resp_data.push(FilterTitleResponseBody {
-            id: query.set_str("id", title.id),
-            title: query.set_str("title", title.title),
-            author: query.set_option_str("author", title.author),
-            categories_id: query.set_str("categories_id", title.category_id),
-            thumbnail_id: query.set_str("thumbnail_id", title.thumbnail_id),
-            release_date: query.set_option_str("release_date", title.release_date),
-            date_added: query.set_str("date_added", title.date_added),
-            date_updated: query.set_str("date_updated", title.date_updated),
-            tag_ids: query.set_vec_i32("tag_ids", tag_ids),
-            favorite: query.set_u32("favorite", favorite),
-            page_count: query.set_u32("page_count", page_count),
-            page_read: query.set_u32("page_read", page_read),
+            id: title.id,
+            title: title.title,
+            author: title.author,
+            categories_id: title.category_id,
+            thumbnail_id: title.thumbnail_id,
+            release_date: title.release_date,
+            date_added: title.date_added,
+            date_updated: title.date_updated,
+            favorite_count,
+            page_count,
+            page_read,
         });
     }
 
