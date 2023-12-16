@@ -30,7 +30,7 @@ pub struct FilterRequest {
 pub struct FilterTitleResponseBody {
     id: String,
     title: String,
-    author: String,
+    author: Option<String>,
     categories_id: String,
     thumbnail_id: String,
     release_date: Option<String>,
