@@ -33,7 +33,7 @@ pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
         StatusCode::OK,
         String::from("Status check successful."),
         Some(StatusResponseBody {
-            server_time: chrono::Local::now(),
+            server_time: Local::now(),
             version,
             echo,
         }),
@@ -48,7 +48,7 @@ pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoRespons
         StatusCode::OK,
         String::from("Status check successful."),
         Some(StatusResponseBody {
-            server_time: chrono::Local::now(),
+            server_time: Local::now(),
             version,
             echo,
         }),
