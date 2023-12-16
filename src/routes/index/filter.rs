@@ -67,13 +67,12 @@ pub struct FilterTitleResponseBody {
     author: String,
     categories_id: String,
     thumbnail_id: String,
-    release_date: String,
+    release_date: Option<String>,
     date_added: String,
     date_updated: String,
-    tag_ids: Vec<i32>,
-    favorite: u32,
+    favorite_count: Option<u32>,
     page_count: u32,
-    page_read: u32,
+    page_read: Option<u32>,
 }
 
 #[derive(Serialize, ToSchema)]
