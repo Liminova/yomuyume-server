@@ -50,7 +50,7 @@ pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &s
     }
 }
 
-pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> u32 {
+pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Option<u32> {
     let favorites = crate::models::favorites::Entity::find()
         .filter(crate::models::favorites::Column::TitleId.contains(title_id))
         .all(db)
@@ -65,7 +65,7 @@ pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> u32
         .unwrap_or(vec![]);
 
     match favorites.is_empty() {
-        true => 0,
-        false => favorites.len() as u32,
+        true => None,
+        false => Some(favorites.len() as u32),
     }
 }
