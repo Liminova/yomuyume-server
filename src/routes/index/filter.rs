@@ -17,17 +17,12 @@ use crate::utils::find_title_info::*;
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct FilterRequest {
     /// Keywords to search for (search in title, description, author, tags)
-    keywords: Vec<String>,
+    keywords: Option<Vec<String>>,
     /// Categories to filter by
-    category_ids: Vec<String>,
+    category_ids: Option<Vec<String>>,
     /// Tags to filter by
-    tag_ids: Vec<i32>,
-    /// Only include listed fields in response
-    fields: Vec<String>,
+    tag_ids: Option<Vec<i32>>,
     /// Maximum number of results to return
-    limit: u32,
-}
-
 impl FilterRequest {
     pub fn set_str(&self, field: &str, value: String) -> String {
         if self.fields.is_empty() || self.fields.contains(&String::from(field)) {
