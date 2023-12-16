@@ -12,6 +12,7 @@ use crate::{
 };
 
 use super::super::{ApiResponse, ErrorResponseBody};
+use crate::utils::find_title_info::*;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct FilterRequest {
@@ -78,91 +79,6 @@ pub struct FilterTitleResponseBody {
 #[derive(Serialize, ToSchema)]
 pub struct FilterResponseBody {
     pub data: Vec<FilterTitleResponseBody>,
-}
-
-async fn find_title_tag_ids(db: &DatabaseConnection, title_id: String) -> Vec<i32> {
-    let titles_tags = titles_tags::Entity::find()
-        .filter(crate::models::titles_tags::Column::TitleId.contains(title_id))
-        .all(db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Database error: {}", e),
-            )
-        })
-        .unwrap_or(vec![]);
-
-    let tag_ids = titles_tags
-        .iter()
-        .map(|titles_tag| titles_tag.tag_id)
-        .collect::<Vec<i32>>();
-
-    match tag_ids.is_empty() {
-        true => vec![],
-        false => tag_ids,
-    }
-}
-
-async fn find_page_count(db: &DatabaseConnection, title_id: String) -> u32 {
-    let pages = crate::models::pages::Entity::find()
-        .filter(crate::models::pages::Column::TitleId.contains(title_id))
-        .all(db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Database error: {}", e),
-            )
-        })
-        .unwrap_or(vec![]);
-
-    match pages.is_empty() {
-        true => 0,
-        false => pages.len() as u32,
-    }
-}
-
-async fn find_page_read(db: &DatabaseConnection, title_id: String) -> u32 {
-    let progresses = progresses::Entity::find()
-        .filter(progresses::Column::TitleId.contains(title_id))
-        .all(db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Database error: {}", e),
-            )
-        })
-        .unwrap_or(vec![]);
-
-    match progresses.is_empty() {
-        true => 0,
-        false => progresses.len() as u32,
-    }
-}
-
-async fn find_favorite_count(db: &DatabaseConnection, title_id: String) -> u32 {
-    let favorites = crate::models::favorites::Entity::find()
-        .filter(crate::models::favorites::Column::TitleId.contains(title_id))
-        .all(db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Database error: {}", e),
-            )
-        })
-        .unwrap_or(vec![]);
-
-    match favorites.is_empty() {
-        true => 0,
-        false => favorites.len() as u32,
-    }
 }
 
 #[utoipa::path(post, path = "/api/index/filter", responses(
