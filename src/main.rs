@@ -49,7 +49,7 @@ async fn main() -> Result<(), DbErr> {
     };
 
     let schema_manager = SchemaManager::new(&db);
-    Migrator::refresh(&db).await?;
+    Migrator::up(&db, None).await?;
     assert!(schema_manager.has_table("users").await?);
     assert!(schema_manager.has_table("categories").await?);
     assert!(schema_manager.has_table("titles").await?);
