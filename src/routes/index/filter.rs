@@ -87,7 +87,8 @@ pub struct FilterResponseBody {
 ))]
 pub async fn post_filter(
     State(data): State<Arc<AppState>>,
-    query: Json<FilterRequest>,
+    Extension(user): Extension<crate::models::users::Model>,
+    Json(query): Json<FilterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let keywords = query.keywords.to_vec();
     let category_ids = query.category_ids.to_vec();
