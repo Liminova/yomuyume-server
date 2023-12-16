@@ -111,16 +111,16 @@ pub async fn auth(
             )
         })?;
 
-    let user = user.ok_or_else(|| {
-        build_err_resp(
+    if let Some(user) = user {
+        req.extensions_mut().insert(user);
+        Ok(next.run(req).await)
+    } else {
+        Err(build_err_resp(
             StatusCode::UNAUTHORIZED,
             String::from("You're not authorized."),
             String::from("The user belonging to this token no longer exists."),
-        )
-    });
-
-    req.extensions_mut().insert(user);
-    Ok(next.run(req).await)
+        ))
+    }
 }
 
 #[utoipa::path(post, path = "/api/auth/register", responses(
