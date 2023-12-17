@@ -127,6 +127,14 @@ pub async fn post_register(
     State(data): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+    if !email_address::EmailAddress::is_valid(&query.email) {
+        return Err(build_err_resp(
+            StatusCode::BAD_REQUEST,
+            String::from("Server has received a bad request."),
+            String::from("Invalid email."),
+        ));
+    }
+
     let email_exists = Users::find()
         .filter(users::Column::Email.eq(&query.email.to_string().to_ascii_lowercase()))
         .one(&data.db)
