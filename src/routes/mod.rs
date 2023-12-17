@@ -9,9 +9,9 @@ use crate::models::{
 use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest},
     index::{
-        categories::CategoriesResponseBody,
-        filter::{FilterRequest, FilterResponseBody},
-        title::TitleResponseBody,
+        get_categories::CategoriesResponseBody,
+        get_title::TitleResponseBody,
+        post_filter::{FilterRequest, FilterResponseBody},
     },
     pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
