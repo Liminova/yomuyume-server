@@ -1,5 +1,9 @@
-use std::sync::Arc;
-
+use super::super::{ApiResponse, ErrorResponseBody};
+use crate::{
+    models::{prelude::Titles, titles::Model as Title},
+    utils::build_resp::{build_err_resp, build_resp},
+    AppState,
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -8,16 +12,9 @@ use axum::{
 };
 use sea_orm::*;
 use serde::Serialize;
+use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::{
-    models::{prelude::Titles, titles::Model as Title},
-    utils::build_resp::{build_err_resp, build_resp},
-    AppState,
-};
-
-use super::super::{ApiResponse, ErrorResponseBody};
 
 #[derive(Serialize, ToSchema)]
 pub struct TitleResponseBody {

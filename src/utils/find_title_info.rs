@@ -1,9 +1,7 @@
+use super::build_resp::build_err_resp;
+use crate::models::progresses;
 use axum::http::StatusCode;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
-
-use crate::models::progresses;
-
-use super::build_resp::build_err_resp;
 
 pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
     let pages = crate::models::pages::Entity::find()

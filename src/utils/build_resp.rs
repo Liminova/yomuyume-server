@@ -1,7 +1,6 @@
+use crate::routes::{ApiResponse, ErrorResponseBody};
 use axum::{http::StatusCode, Json};
 use serde::Serialize;
-
-use crate::routes::{ApiResponse, ErrorResponseBody};
 
 pub fn build_resp<T: Serialize>(
     status: StatusCode,

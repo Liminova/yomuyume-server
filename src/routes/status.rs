@@ -1,11 +1,10 @@
+use crate::constants::version::get_version;
+use crate::utils::build_resp::build_resp;
 use axum::http::StatusCode;
 use axum::{extract::Query, response::IntoResponse, Json};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
-
-use crate::constants::version::get_version;
-use crate::utils::build_resp::build_resp;
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct StatusResponseBody {

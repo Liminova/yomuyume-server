@@ -1,17 +1,14 @@
-use std::sync::Arc;
-
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use sea_orm::*;
-use serde::Serialize;
-use utoipa::ToSchema;
-
+use super::super::{ApiResponse, ErrorResponseBody};
 use crate::{
     models::{categories::Model as Category, prelude::Categories},
     utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
-
-use super::super::{ApiResponse, ErrorResponseBody};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use sea_orm::*;
+use serde::Serialize;
+use std::sync::Arc;
+use utoipa::ToSchema;
 
 #[derive(Serialize, ToSchema)]
 pub struct CategoriesResponseBody {
