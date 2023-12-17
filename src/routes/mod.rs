@@ -7,7 +7,7 @@ use crate::models::{
 };
 
 use self::{
-    auth::{LoginRequest, LoginResponseBody, RegisterRequest, RegisterResponseBody},
+    auth::{LoginRequest, LoginResponseBody, RegisterRequest},
     index::{
         categories::CategoriesResponseBody,
         filter::{FilterRequest, FilterResponseBody},
@@ -37,7 +37,6 @@ pub struct ErrorResponseBody {
     LoginResponse = ApiResponse<LoginResponseBody>,
     PageResponse = ApiResponse<PageResponseBody>,
     PagesResponse = ApiResponse<PagesResponseBody>,
-    RegisterResponse = ApiResponse<RegisterResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
     FilterResponse = ApiResponse<FilterResponseBody>,
@@ -103,8 +102,6 @@ pub struct ApiResponse<T> {
         PageResponseBody,
         PagesResponse,
         PagesResponseBody,
-        RegisterResponse,
-        RegisterResponseBody,
         RegisterRequest,
         StatusResponse,
         StatusResponseBody,

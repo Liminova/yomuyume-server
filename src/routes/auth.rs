@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 use crate::{
     models::{auth::TokenClaims, prelude::Users, users, users::Model as User},
-    utils::build_resp::{build_err_resp, build_resp},
+    utils::build_resp::build_err_resp,
     AppState,
 };
 
@@ -32,11 +32,6 @@ pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct RegisterResponseBody {
-    pub user: User,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -179,7 +174,7 @@ pub async fn post_register(
         ..Default::default()
     };
 
-    let user = user.insert(&data.db).await.map_err(|e| {
+    user.insert(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("An internal server error has occurred."),
@@ -187,11 +182,7 @@ pub async fn post_register(
         )
     })?;
 
-    Ok(build_resp(
-        StatusCode::OK,
-        String::from("Registration successful."),
-        RegisterResponseBody { user },
-    ))
+    Ok(StatusCode::OK)
 }
 
 #[utoipa::path(post, path = "/api/auth/login", responses(
@@ -271,20 +262,12 @@ pub async fn post_login(
 }
 
 #[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = ErrorResponse)))]
-pub async fn get_logout(
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+pub async fn get_logout() -> impl IntoResponse {
     let cookie = Cookie::build(("token", ""))
         .path("/")
         .max_age(time::Duration::hours(-1))
         .same_site(SameSite::Lax)
         .http_only(true);
 
-    Ok((
-        StatusCode::OK,
-        [(header::SET_COOKIE, cookie.to_string())],
-        Json(ApiResponse::<ErrorResponseBody> {
-            description: String::from("Logout successful."),
-            body: None,
-        }),
-    ))
+    (StatusCode::OK, [(header::SET_COOKIE, cookie.to_string())])
 }
