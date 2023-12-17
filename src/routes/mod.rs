@@ -1,13 +1,8 @@
-use serde::{Deserialize, Serialize};
-use utoipa::{OpenApi, ToSchema};
-
-use crate::models::{
-    categories::Model as Category, pages::Model as Page, titles::Model as Title,
-    users::Model as User,
-};
-
 use self::{
-    auth::{LoginRequest, LoginResponseBody, RegisterRequest},
+    auth::{
+        post_login::{LoginRequest, LoginResponseBody},
+        post_register::RegisterRequest,
+    },
     index::{
         get_categories::CategoriesResponseBody,
         get_title::TitleResponseBody,
@@ -17,6 +12,12 @@ use self::{
     status::{StatusRequest, StatusResponseBody},
     user::CheckResponseBody,
 };
+use crate::models::{
+    categories::Model as Category, pages::Model as Page, titles::Model as Title,
+    users::Model as User,
+};
+use serde::{Deserialize, Serialize};
+use utoipa::{OpenApi, ToSchema};
 
 pub mod auth;
 pub mod index;

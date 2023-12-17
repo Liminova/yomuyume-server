@@ -1,12 +1,20 @@
-use std::{net::SocketAddr, sync::Arc};
-
+use crate::middlewares::auth::auth as auth_middleware;
+use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
 use axum::{
     middleware::from_fn_with_state,
-    Router,
     routing::{get, post},
+    Router,
+};
+use routes::{
+    auth::{get_logout::get_logout, post_login::post_login, post_register::post_register},
+    index::{get_categories::get_categories, get_title::get_title, post_filter::post_filter},
+    pages::*,
+    status::*,
+    user::*,
 };
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
@@ -14,12 +22,9 @@ use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-use routes::{auth::*, index::*, pages::*, status::*, user::*};
-
-use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
-
 mod config;
 mod constants;
+mod middlewares;
 mod migrator;
 mod models;
 mod routes;
@@ -75,24 +80,24 @@ async fn main() -> Result<(), DbErr> {
         .route("/login", post(post_login))
         .route(
             "/logout",
-            get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth)),
+            get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth_middleware)),
         );
 
     let user_routes = Router::new()
         .route("/check", get(get_check))
-        .layer(from_fn_with_state(app_state.clone(), auth));
+        .layer(from_fn_with_state(app_state.clone(), auth_middleware));
 
     let index_routes = Router::new()
-        .route("/filter", post(filter::post_filter))
-        .route("/categories", get(categories::get_categories))
-        .route("/title/:title_id", get(title::get_title))
-        .layer(from_fn_with_state(app_state.clone(), auth));
+        .route("/filter", post(post_filter))
+        .route("/categories", get(get_categories))
+        .route("/title/:title_id", get(get_title))
+        .layer(from_fn_with_state(app_state.clone(), auth_middleware));
 
     let pages_routes = Router::new()
         .route("/pages", get(get_pages))
         .route("/page/:page_id", get(get_page))
         .route("/pages/by_title_id/:title_id", get(get_pages_by_title_id))
-        .layer(from_fn_with_state(app_state.clone(), auth));
+        .layer(from_fn_with_state(app_state.clone(), auth_middleware));
 
     let app = Router::new()
         .nest("/api/auth", auth_routes)
