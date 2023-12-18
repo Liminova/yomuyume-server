@@ -1,6 +1,6 @@
 use crate::{
     models::{
-        auth::{ConfirmReason, ConfirmTokenClaims},
+        auth::{TokenClaims, TokenClaimsPurpose},
         prelude::Users,
         users,
     },
@@ -60,11 +60,11 @@ pub async fn post_forget(
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::hours(1)).timestamp() as usize;
-    let token_claims = ConfirmTokenClaims {
+    let token_claims = TokenClaims {
         sub: user.id.clone(),
         iat,
         exp,
-        reason: ConfirmReason::Forget,
+        purpose: Some(TokenClaimsPurpose::ResetPassword),
     };
     let token = match jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
