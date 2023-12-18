@@ -8,7 +8,7 @@ use crate::{
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, Set};
 use std::sync::Arc;
 
 #[utoipa::path(get, path = "/api/user/verify", responses(
@@ -19,6 +19,14 @@ pub async fn get_verify(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+    if user.is_verified {
+        return Err(build_err_resp(
+            StatusCode::BAD_REQUEST,
+            String::from("Server has received a bad request."),
+            String::from("User is already verified."),
+        ));
+    }
+
     if data.env.smtp_host.is_none() {
         return Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -86,6 +94,14 @@ pub async fn post_verify(
     Extension(purpose): Extension<TokenClaimsPurpose>,
     Extension(user): Extension<users::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+    if user.is_verified {
+        return Err(build_err_resp(
+            StatusCode::BAD_REQUEST,
+            String::from("Server has received a bad request."),
+            String::from("User is already verified."),
+        ));
+    }
+
     if purpose != TokenClaimsPurpose::VerifyRegister {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
@@ -93,25 +109,6 @@ pub async fn post_verify(
             String::from("Invalid request purpose."),
         ));
     }
-
-    let user = users::Entity::find()
-        .filter(users::Column::Id.eq(&user.id))
-        .one(&data.db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Failed to fetch user from database. Database error: {}", e),
-            )
-        })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::BAD_REQUEST,
-                String::from("Server has received a bad request."),
-                String::from("Invalid user."),
-            )
-        })?;
 
     let mut user: users::ActiveModel = user.into();
     user.is_verified = Set(true);
