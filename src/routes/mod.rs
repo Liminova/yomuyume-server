@@ -9,7 +9,7 @@ pub use self::{
     index::{CategoriesResponseBody, FilterRequest, FilterResponseBody, TitleResponseBody},
     pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
-    user::{DeleteRequestBody, ResetRequestBody},
+    user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
 };
 use crate::models::{
     categories::Model as Category, pages::Model as Page, titles::Model as Title,
@@ -72,6 +72,7 @@ pub struct ApiResponse<T> {
         auth::post_register,
         auth::get_logout,
         user::get_check,
+        user::post_modify,
         user::get_delete,
         user::post_delete,
         user::get_reset,
@@ -97,6 +98,7 @@ pub struct ApiResponse<T> {
         LoginRequest,
         LoginResponse,
         LoginResponseBody,
+        ModifyRequestBody,
         Page,
         PageResponse,
         PageResponseBody,

@@ -10,7 +10,10 @@ use routes::{
     index::{get_categories, get_title, post_filter},
     pages::{get_page, get_pages, get_pages_by_title_id},
     status::{get_status, post_status},
-    user::{get_check, get_delete, get_reset, get_verify, post_delete, post_reset, post_verify},
+    user::{
+        get_check, get_delete, get_reset, get_verify, post_delete, post_modify, post_reset,
+        post_verify,
+    },
 };
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
@@ -88,6 +91,7 @@ async fn main() -> Result<(), DbErr> {
         .route("/reset", post(post_reset))
         .route("/delete", get(get_delete).post(post_delete))
         .route("/verify", get(get_verify).post(post_verify))
+        .route("/modify", post(post_modify))
         .layer(apply(app_state.clone(), auth));
 
     let index_routes = Router::new()
