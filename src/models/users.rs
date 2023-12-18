@@ -14,6 +14,7 @@ pub struct Model {
     pub created_at: String,
     pub updated_at: String,
     pub password: String,
+    pub is_verified: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
