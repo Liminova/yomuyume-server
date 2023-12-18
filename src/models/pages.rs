@@ -11,9 +11,9 @@ pub struct Model {
     pub title_id: String,
     pub path: String,
     pub hash: String,
-    pub width: i32,
-    pub height: i32,
-    pub description: String,
+    pub width: u32,
+    pub height: u32,
+    pub description: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
