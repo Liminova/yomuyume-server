@@ -81,6 +81,7 @@ pub async fn post_login(
         sub: user.id.to_string(),
         exp,
         iat,
+        purpose: None,
     };
 
     let token = encode(
