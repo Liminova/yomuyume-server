@@ -10,7 +10,7 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter};
 use std::sync::Arc;
 
 #[utoipa::path(put, path = "/api/user/favorite/:id", responses(
@@ -68,9 +68,9 @@ pub async fn put_favorite(
     let active_user: users::ActiveModel = user.into();
 
     let active_favorite = favorites::ActiveModel {
+        id: NotSet,
         title_id: active_title.id,
         user_id: active_user.id,
-        ..Default::default()
     };
 
     favorites::Entity::insert(active_favorite)
@@ -142,9 +142,9 @@ pub async fn put_bookmark(
     let active_user: users::ActiveModel = user.into();
 
     let active_bookmark = favorites::ActiveModel {
+        id: NotSet,
         title_id: active_title.id,
         user_id: active_user.id,
-        ..Default::default()
     };
 
     favorites::Entity::insert(active_bookmark)
