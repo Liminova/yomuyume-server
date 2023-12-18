@@ -2,7 +2,7 @@ use crate::routes::ApiResponse;
 use crate::routes::ErrorResponseBody;
 use crate::{
     models::{auth::TokenClaims, prelude::Users, users::Model as User},
-    utils::build_resp::build_err_resp,
+    utils::build_err_resp,
     AppState,
 };
 use axum::{
