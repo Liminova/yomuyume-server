@@ -1,5 +1,6 @@
 use self::{
     auth::{
+        post_confirm::ConfirmRequest,
         post_forget::ForgetRequest,
         post_login::{LoginRequest, LoginResponseBody},
         post_register::RegisterRequest,
@@ -92,6 +93,7 @@ pub struct ApiResponse<T> {
         CategoriesResponseBody,
         Category,
         CheckResponse,
+        ConfirmRequest,
         ErrorResponse,
         ErrorResponseBody,
         FilterRequest,
