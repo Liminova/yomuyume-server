@@ -1,18 +1,16 @@
-use std::sync::Arc;
-
+use super::super::{ApiResponse, ErrorResponseBody};
+use crate::models::{titles, titles_tags};
+use crate::utils::find_title_info::*;
 use crate::{
+    models::users,
     utils::build_resp::{build_err_resp, build_resp},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, QuerySelect, QueryTrait};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use utoipa::ToSchema;
-
-use super::super::{ApiResponse, ErrorResponseBody};
-use crate::models::{titles, titles_tags};
-
-use crate::utils::find_title_info::*;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct FilterRequest {
@@ -53,7 +51,7 @@ pub struct FilterResponseBody {
 ))]
 pub async fn post_filter(
     State(data): State<Arc<AppState>>,
-    Extension(user): Extension<crate::models::users::Model>,
+    Extension(user): Extension<users::Model>,
     Json(query): Json<FilterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let keywords = query.keywords;
