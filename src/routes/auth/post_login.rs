@@ -1,11 +1,11 @@
 use crate::models::users;
+use crate::utils::build_resp;
 use crate::{
     models::{auth::TokenClaims, prelude::Users},
     routes::{ApiResponse, ErrorResponseBody},
-    utils::build_resp::build_err_resp,
+    utils::{build_err_resp, check_pass},
     AppState,
 };
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     extract::State,
     http::{header, StatusCode},
@@ -30,6 +30,7 @@ pub struct LoginResponseBody {
     pub token: String,
 }
 
+/// Login to the server.
 #[utoipa::path(post, path = "/api/auth/login", responses(
     (status = 200, description = "Login successful.", body = LoginResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
@@ -59,14 +60,7 @@ pub async fn post_login(
             )
         })?;
 
-    let is_valid = match PasswordHash::new(&user.password) {
-        Ok(parsed_hash) => Argon2::default()
-            .verify_password(query.password.as_bytes(), &parsed_hash)
-            .map_or(false, |_| true),
-        Err(_) => false,
-    };
-
-    if !is_valid {
+    if !check_pass(&user.password, &query.password) {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
             String::from("Server has received a bad request."),
