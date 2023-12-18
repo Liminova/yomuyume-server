@@ -31,7 +31,7 @@ pub fn sendmail(
 
     let creds = Credentials::new(env.smtp_username.to_string(), env.smtp_password.to_string());
 
-    let host = env.smtp_host.as_ref().ok_or_else(|| "Invalid smtp host")?;
+    let host = env.smtp_host.as_ref().ok_or("Invalid smtp host")?;
 
     let mailer = SmtpTransport::relay(host)
         .map_err(|_| "Failed to create mailer")?
