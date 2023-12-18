@@ -1,5 +1,5 @@
 use crate::constants::version::get_version;
-use crate::utils::build_resp::build_resp;
+use crate::utils::build_resp;
 use axum::http::StatusCode;
 use axum::{extract::Query, response::IntoResponse, Json};
 use chrono::{DateTime, Local};

@@ -1,18 +1,15 @@
-use self::{
-    auth::{
-        post_confirm::ConfirmRequest,
-        post_forget::ForgetRequest,
-        post_login::{LoginRequest, LoginResponseBody},
-        post_register::RegisterRequest,
-    },
-    index::{
-        get_categories::CategoriesResponseBody,
-        get_title::TitleResponseBody,
-        post_filter::{FilterRequest, FilterResponseBody},
-    },
+pub mod auth;
+pub mod index;
+pub mod pages;
+pub mod status;
+pub mod user;
+
+pub use self::{
+    auth::{LoginRequest, LoginResponseBody, RegisterRequest},
+    index::{CategoriesResponseBody, FilterRequest, FilterResponseBody, TitleResponseBody},
     pages::{PageResponseBody, PagesResponseBody},
     status::{StatusRequest, StatusResponseBody},
-    user::CheckResponseBody,
+    user::{DeleteRequestBody, ResetRequestBody},
 };
 use crate::models::{
     categories::Model as Category, pages::Model as Page, titles::Model as Title,
@@ -20,12 +17,6 @@ use crate::models::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
-
-pub mod auth;
-pub mod index;
-pub mod pages;
-pub mod status;
-pub mod user;
 
 #[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
@@ -43,7 +34,6 @@ pub struct ErrorResponseBody {
     StatusResponse = ApiResponse<StatusResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
     FilterResponse = ApiResponse<FilterResponseBody>,
-    CheckResponse = ApiResponse<CheckResponseBody>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -82,6 +72,12 @@ pub struct ApiResponse<T> {
         auth::post_register,
         auth::get_logout,
         user::get_check,
+        user::get_delete,
+        user::post_delete,
+        user::get_reset,
+        user::post_reset,
+        user::get_verify,
+        user::post_verify,
         index::get_categories,
         index::post_filter,
         index::get_title,
@@ -92,14 +88,12 @@ pub struct ApiResponse<T> {
         CategoriesResponse,
         CategoriesResponseBody,
         Category,
-        CheckResponse,
-        ConfirmRequest,
+        DeleteRequestBody,
         ErrorResponse,
         ErrorResponseBody,
         FilterRequest,
         FilterResponse,
         FilterResponseBody,
-        ForgetRequest,
         LoginRequest,
         LoginResponse,
         LoginResponseBody,
@@ -109,6 +103,7 @@ pub struct ApiResponse<T> {
         PagesResponse,
         PagesResponseBody,
         RegisterRequest,
+        ResetRequestBody,
         StatusRequest,
         StatusResponse,
         StatusResponseBody,
