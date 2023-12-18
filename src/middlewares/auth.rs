@@ -81,6 +81,8 @@ pub async fn auth(
 
     if let Some(user) = user {
         req.extensions_mut().insert(user);
+        req.extensions_mut()
+            .insert(claims.purpose.unwrap_or_default());
         Ok(next.run(req).await)
     } else {
         Err(build_err_resp(
