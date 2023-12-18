@@ -58,9 +58,11 @@ pub async fn post_forget(
         .unwrap();
 
     let now = chrono::Utc::now();
+    let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::hours(1)).timestamp() as usize;
     let token_claims = ConfirmTokenClaims {
         sub: user.id.clone(),
+        iat,
         exp,
         reason: ConfirmReason::Forget,
     };

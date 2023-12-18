@@ -17,6 +17,7 @@ pub enum ConfirmReason {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConfirmTokenClaims {
     pub sub: String,
+    pub iat: usize,
     pub exp: usize,
     pub reason: ConfirmReason,
 }
