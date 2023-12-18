@@ -1,5 +1,5 @@
 use crate::models::users;
-use crate::utils::build_resp;
+
 use crate::{
     models::{auth::TokenClaims, prelude::Users},
     routes::{ApiResponse, ErrorResponseBody},
