@@ -6,3 +6,17 @@ pub struct TokenClaims {
     pub iat: usize,
     pub exp: usize,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ConfirmReason {
+    Register,
+    Forget,
+    Delete,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConfirmTokenClaims {
+    pub sub: String,
+    pub exp: usize,
+    pub reason: ConfirmReason,
+}
