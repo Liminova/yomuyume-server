@@ -1,5 +1,5 @@
 use crate::{
-    models::{bookmarks, favorites, prelude::Titles, titles, users},
+    models::{bookmarks, favorites, prelude::Titles, users},
     routes::{ApiResponse, ErrorResponseBody},
     utils::build_err_resp,
     AppState,
@@ -10,7 +10,7 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 
 #[utoipa::path(put, path = "/api/user/favorite/:id", responses(
@@ -64,13 +64,10 @@ pub async fn put_favorite(
             )
         })?;
 
-    let active_title: titles::ActiveModel = title.into();
-    let active_user: users::ActiveModel = user.into();
-
     let active_favorite = favorites::ActiveModel {
         id: NotSet,
-        title_id: active_title.id,
-        user_id: active_user.id,
+        title_id: Set(title.id),
+        user_id: Set(user.id),
     };
 
     favorites::Entity::insert(active_favorite)
@@ -138,13 +135,10 @@ pub async fn put_bookmark(
             )
         })?;
 
-    let active_title: titles::ActiveModel = title.into();
-    let active_user: users::ActiveModel = user.into();
-
     let active_bookmark = favorites::ActiveModel {
         id: NotSet,
-        title_id: active_title.id,
-        user_id: active_user.id,
+        title_id: Set(title.id),
+        user_id: Set(user.id),
     };
 
     favorites::Entity::insert(active_bookmark)
