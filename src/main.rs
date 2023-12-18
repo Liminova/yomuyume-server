@@ -10,11 +10,11 @@ use routes::{
     auth::{get_logout, post_login, post_register},
     index::{get_categories, get_title, post_filter},
     pages::{get_page, get_pages, get_pages_by_title_id},
-    status::{get_status, post_status},
     user::{
         delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
         post_delete, post_modify, post_reset, post_verify, put_bookmark, put_favorite,
     },
+    utils::{get_status, post_status},
 };
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
@@ -87,6 +87,8 @@ async fn main() -> Result<(), DbErr> {
             get(get_logout).route_layer(apply(app_state.clone(), auth)),
         );
 
+    let utils_routes = Router::new().route("/status", get(get_status).post(post_status));
+
     let user_routes = Router::new()
         .route("/check", get(get_check))
         .route("/reset", post(post_reset))
@@ -114,8 +116,8 @@ async fn main() -> Result<(), DbErr> {
         .nest("/api/index", index_routes)
         .nest("/api/pages", pages_routes)
         .nest("/api/user", user_routes)
+        .nest("/api/utils", utils_routes)
         .route("/api/user/reset", get(get_reset))
-        .route("/api/status", get(get_status).post(post_status))
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())

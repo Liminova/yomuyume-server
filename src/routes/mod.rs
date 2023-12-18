@@ -1,15 +1,15 @@
 pub mod auth;
 pub mod index;
 pub mod pages;
-pub mod status;
 pub mod user;
+pub mod utils;
 
 pub use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest},
     index::{CategoriesResponseBody, FilterRequest, FilterResponseBody, TitleResponseBody},
     pages::{PageResponseBody, PagesResponseBody},
-    status::{StatusRequest, StatusResponseBody},
     user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
+    utils::{StatusRequest, StatusResponseBody},
 };
 use crate::models::{
     categories::Model as Category, pages::Model as Page, titles::Model as Title,
@@ -52,11 +52,7 @@ pub struct ApiResponse<T> {
     tags(
         (
             name = "auth",
-            description = "all the routes related to authentication."
-        ),
-        (
-            name = "status",
-            description = "all the routes related to fetching backend status."
+            description = "Login, register, logout."
         ),
         (
             name = "index",
@@ -64,8 +60,12 @@ pub struct ApiResponse<T> {
         ),
         (
             name = "user",
-            description = "all the routes related to fetching pages data."
+            description = "all the routes related to user."
         ),
+        (
+            name = "utils",
+            description = "Getting server status, item/category id-name map"
+        )
     ),
     paths(
         auth::post_login,
@@ -86,8 +86,8 @@ pub struct ApiResponse<T> {
         index::get_categories,
         index::post_filter,
         index::get_title,
-        status::get_status,
-        status::post_status,
+        utils::get_status,
+        utils::post_status,
     ),
     components(schemas(
         CategoriesResponse,

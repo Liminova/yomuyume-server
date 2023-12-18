@@ -24,7 +24,7 @@ pub struct StatusRequest {
     pub echo: Option<String>,
 }
 
-#[utoipa::path(get, path = "/api/status", params(StatusRequest), responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
+#[utoipa::path(get, path = "/api/utils/status", params(StatusRequest), responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
 pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let echo = query.echo.clone();
     let version = get_version();
@@ -39,7 +39,7 @@ pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     )
 }
 
-#[utoipa::path(post, path = "/api/status", responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
+#[utoipa::path(post, path = "/api/utils/status", responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
 pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoResponse {
     let echo = query.and_then(|q| q.echo.clone());
     let version = get_version();
