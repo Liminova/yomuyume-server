@@ -1,4 +1,5 @@
-use crate::middlewares::auth::auth as auth_middleware;
+use crate::middlewares::auth::auth;
+use crate::routes::auth::post_confirm::post_confirm;
 use crate::routes::auth::post_forget::post_forget;
 use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
 use axum::{
@@ -81,25 +82,29 @@ async fn main() -> Result<(), DbErr> {
         .route("/login", post(post_login))
         .route(
             "/logout",
-            get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth_middleware)),
+            get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth)),
         )
-        .route("/forget", post(post_forget));
+        .route("/forget", post(post_forget))
+        .route(
+            "/confirm",
+            post(post_confirm).route_layer(from_fn_with_state(app_state.clone(), auth)),
+        );
 
     let user_routes = Router::new()
         .route("/check", get(get_check))
-        .layer(from_fn_with_state(app_state.clone(), auth_middleware));
+        .layer(from_fn_with_state(app_state.clone(), auth));
 
     let index_routes = Router::new()
         .route("/filter", post(post_filter))
         .route("/categories", get(get_categories))
         .route("/title/:title_id", get(get_title))
-        .layer(from_fn_with_state(app_state.clone(), auth_middleware));
+        .layer(from_fn_with_state(app_state.clone(), auth));
 
     let pages_routes = Router::new()
         .route("/pages", get(get_pages))
         .route("/page/:page_id", get(get_page))
         .route("/pages/by_title_id/:title_id", get(get_pages_by_title_id))
-        .layer(from_fn_with_state(app_state.clone(), auth_middleware));
+        .layer(from_fn_with_state(app_state.clone(), auth));
 
     let app = Router::new()
         .nest("/api/auth", auth_routes)
