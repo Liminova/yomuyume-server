@@ -1,5 +1,6 @@
 use crate::middlewares::auth::auth;
 use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
+use axum::routing::put;
 use axum::{
     middleware::from_fn_with_state as apply,
     routing::{get, post},
@@ -11,8 +12,8 @@ use routes::{
     pages::{get_page, get_pages, get_pages_by_title_id},
     status::{get_status, post_status},
     user::{
-        get_check, get_delete, get_reset, get_verify, post_delete, post_modify, post_reset,
-        post_verify,
+        delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
+        post_delete, post_modify, post_reset, post_verify, put_bookmark, put_favorite,
     },
 };
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
@@ -92,6 +93,8 @@ async fn main() -> Result<(), DbErr> {
         .route("/delete", get(get_delete).post(post_delete))
         .route("/verify", get(get_verify).post(post_verify))
         .route("/modify", post(post_modify))
+        .route("/bookmark/:id", put(put_bookmark).delete(delete_bookmark))
+        .route("/favorite/:id", put(put_favorite).delete(delete_favorite))
         .layer(apply(app_state.clone(), auth));
 
     let index_routes = Router::new()
