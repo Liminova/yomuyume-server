@@ -1,4 +1,5 @@
 pub mod get_logout;
+pub mod post_forget;
 pub mod post_login;
 pub mod post_register;
 

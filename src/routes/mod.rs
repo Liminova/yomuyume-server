@@ -1,5 +1,6 @@
 use self::{
     auth::{
+        post_forget::ForgetRequest,
         post_login::{LoginRequest, LoginResponseBody},
         post_register::RegisterRequest,
     },
@@ -87,31 +88,32 @@ pub struct ApiResponse<T> {
         status::post_status,
     ),
     components(schemas(
-        Category,
         CategoriesResponse,
         CategoriesResponseBody,
+        Category,
+        CheckResponse,
         ErrorResponse,
         ErrorResponseBody,
         FilterRequest,
         FilterResponse,
         FilterResponseBody,
+        ForgetRequest,
+        LoginRequest,
         LoginResponse,
         LoginResponseBody,
-        LoginRequest,
         Page,
         PageResponse,
         PageResponseBody,
         PagesResponse,
         PagesResponseBody,
         RegisterRequest,
+        StatusRequest,
         StatusResponse,
         StatusResponseBody,
-        StatusRequest,
         Title,
         TitleResponse,
         TitleResponseBody,
         User,
-        CheckResponse,
     ))
 )]
 pub struct ApiDoc;

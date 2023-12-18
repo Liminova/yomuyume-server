@@ -1,4 +1,5 @@
 use crate::middlewares::auth::auth as auth_middleware;
+use crate::routes::auth::post_forget::post_forget;
 use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
 use axum::{
     middleware::from_fn_with_state,
@@ -81,7 +82,8 @@ async fn main() -> Result<(), DbErr> {
         .route(
             "/logout",
             get(get_logout).route_layer(from_fn_with_state(app_state.clone(), auth_middleware)),
-        );
+        )
+        .route("/forget", post(post_forget));
 
     let user_routes = Router::new()
         .route("/check", get(get_check))
