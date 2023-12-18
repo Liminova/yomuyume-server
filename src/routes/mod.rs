@@ -9,7 +9,7 @@ pub use self::{
     index::{CategoriesResponseBody, FilterRequest, FilterResponseBody, TitleResponseBody},
     pages::{PageResponseBody, PagesResponseBody},
     user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
-    utils::{StatusRequest, StatusResponseBody},
+    utils::{StatusRequest, StatusResponseBody, TagsMapResponseBody},
 };
 use crate::models::{
     categories::Model as Category, pages::Model as Page, titles::Model as Title,
@@ -28,12 +28,13 @@ pub struct ErrorResponseBody {
 #[aliases(
     CategoriesResponse = ApiResponse<CategoriesResponseBody>,
     ErrorResponse = ApiResponse<ErrorResponseBody>,
+    FilterResponse = ApiResponse<FilterResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
     PageResponse = ApiResponse<PageResponseBody>,
     PagesResponse = ApiResponse<PagesResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>,
+    TagsMapResponse = ApiResponse<TagsMapResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
-    FilterResponse = ApiResponse<FilterResponseBody>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -88,6 +89,7 @@ pub struct ApiResponse<T> {
         index::get_title,
         utils::get_status,
         utils::post_status,
+        utils::get_tags,
     ),
     components(schemas(
         CategoriesResponse,
@@ -113,6 +115,8 @@ pub struct ApiResponse<T> {
         StatusRequest,
         StatusResponse,
         StatusResponseBody,
+        TagsMapResponse,
+        TagsMapResponseBody,
         Title,
         TitleResponse,
         TitleResponseBody,

@@ -1,9 +1,7 @@
-use crate::middlewares::auth::auth;
-use crate::{config::Config, migrator::Migrator, routes::ApiDoc};
-use axum::routing::put;
+use crate::{config::Config, middlewares::auth::auth, migrator::Migrator, routes::ApiDoc};
 use axum::{
     middleware::from_fn_with_state as apply,
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use routes::{
@@ -14,7 +12,7 @@ use routes::{
         delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
         post_delete, post_modify, post_reset, post_verify, put_bookmark, put_favorite,
     },
-    utils::{get_status, post_status},
+    utils::{get_status, get_tags, post_status},
 };
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
@@ -87,7 +85,9 @@ async fn main() -> Result<(), DbErr> {
             get(get_logout).route_layer(apply(app_state.clone(), auth)),
         );
 
-    let utils_routes = Router::new().route("/status", get(get_status).post(post_status));
+    let utils_routes = Router::new()
+        .route("/status", get(get_status).post(post_status))
+        .route("/tags", get(get_tags).layer(apply(app_state.clone(), auth)));
 
     let user_routes = Router::new()
         .route("/check", get(get_check))
