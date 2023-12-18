@@ -1,7 +1,7 @@
 use super::super::{ApiResponse, ErrorResponseBody};
 use crate::{
     models::{prelude::Titles, titles::Model as Title},
-    utils::build_resp::{build_err_resp, build_resp},
+    utils::{build_err_resp, build_resp},
     AppState,
 };
 use axum::{
@@ -22,6 +22,7 @@ pub struct TitleResponseBody {
     pub data: Title,
 }
 
+/// Get everything about a title.
 #[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
     (status = 200, description = "Fetch title successful.", body = TitleResponse),
     (status = 204, description = "Fetch title successful, but one was not found.", body = TitleResponse),

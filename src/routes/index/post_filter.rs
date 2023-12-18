@@ -1,9 +1,8 @@
 use super::super::{ApiResponse, ErrorResponseBody};
 use crate::models::{titles, titles_tags};
-use crate::utils::find_title_info::*;
 use crate::{
     models::users,
-    utils::build_resp::{build_err_resp, build_resp},
+    utils::{build_err_resp, build_resp, find_favorite_count, find_page_count, find_page_read},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
@@ -44,6 +43,9 @@ pub struct FilterResponseBody {
     pub data: Vec<FilterTitleResponseBody>,
 }
 
+/// Filtering titles by various parameters.
+///
+/// And also sorting them by various options.
 #[utoipa::path(post, path = "/api/index/filter", responses(
     (status = 200, description = "Fetch all items successful.", body = FilterResponse),
     (status = 204, description = "Fetch all items successful, but none were found.", body = FilterResponse),

@@ -1,7 +1,7 @@
 use super::super::{ApiResponse, ErrorResponseBody};
 use crate::{
     models::{categories::Model as Category, prelude::Categories},
-    utils::build_resp::{build_err_resp, build_resp},
+    utils::{build_err_resp, build_resp},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -16,6 +16,7 @@ pub struct CategoriesResponseBody {
     pub data: Vec<Category>,
 }
 
+/// Get all categories to be displayed on the library page.
 #[utoipa::path(get, path = "/api/index/categories", responses(
     (status = 200, description = "Fetch all categories successful.", body = CategoriesResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse)
