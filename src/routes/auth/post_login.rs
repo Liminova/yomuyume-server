@@ -83,7 +83,13 @@ pub async fn post_login(
         &claims,
         &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
     )
-    .unwrap();
+    .map_err(|e| {
+        build_err_resp(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            String::from("An internal server error has occurred."),
+            format!("JWT error: {}", e),
+        )
+    })?;
 
     let cookie = Cookie::build(("token", token.to_owned()))
         .path("/")
