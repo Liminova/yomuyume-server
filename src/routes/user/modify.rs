@@ -30,6 +30,7 @@ pub async fn post_modify(
     Json(body): Json<ModifyRequestBody>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let password_in_db = user.password.clone();
+    let is_verified = user.is_verified;
 
     let mut active_user: users::ActiveModel = user.into();
 
@@ -43,6 +44,13 @@ pub async fn post_modify(
     }
 
     if let Some(password) = body.password {
+        if !is_verified {
+            return Err(build_err_resp(
+                StatusCode::UNAUTHORIZED,
+                String::from("Unauthorized."),
+                String::from("User is not verified, cannot change password."),
+            ));
+        }
         if !check_pass(&password_in_db, &password) {
             return Err(build_err_resp(
                 StatusCode::BAD_REQUEST,

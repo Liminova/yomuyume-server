@@ -68,6 +68,14 @@ pub async fn get_reset(
             )
         })?;
 
+    if !user.is_verified {
+        return Err(build_err_resp(
+            StatusCode::CONFLICT,
+            String::from("A conflict has occurred."),
+            String::from("User is not verified."),
+        ));
+    }
+
     let now = chrono::Utc::now();
     let token_claims = TokenClaims {
         sub: user.id.clone(),
