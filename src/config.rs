@@ -4,6 +4,7 @@ pub struct Config {
     pub server_address: String,
     pub server_port: u16,
     pub database_url: String,
+    pub library_path: String,
 
     pub jwt_secret: String,
     pub jwt_maxage_hour: i64,
@@ -14,6 +15,10 @@ pub struct Config {
     pub smtp_password: String,
     pub smtp_from_email: String,
     pub smtp_from_name: String,
+
+    pub ffmpeg_path: Option<String>,
+    pub djxl_path: Option<String>,
+    pub decode_log: Option<String>,
 }
 
 impl Config {
@@ -24,11 +29,8 @@ impl Config {
         }
     }
 
-    fn may_get(key: &str, default: Option<&str>) -> Option<String> {
-        match default {
-            Some(val) => std::env::var(key).ok().or(Some(val.to_string())),
-            None => None,
-        }
+    fn may_get(key: &str, _default: Option<&str>) -> Option<String> {
+        std::env::var(key).ok()
     }
 
     pub fn init() -> Self {
@@ -38,6 +40,7 @@ impl Config {
             .parse()
             .unwrap_or(3000);
         let database_url = Self::get_env("DATABASE_URL", Some("sqlite:./database/sqlite.db"));
+        let library_path = Self::get_env("LIBRARY_PATH", Some("./library"));
 
         let jwt_secret = Self::get_env("JWT_SECRET", None);
         let jwt_maxage_hour = Self::get_env("JWT_MAXAGE_HOUR", None)
@@ -53,7 +56,12 @@ impl Config {
         let smtp_from_email = Self::get_env("SMTP_FROM_EMAIL", Some(""));
         let smtp_from_name = Self::get_env("SMTP_FROM_NAME", Some(""));
 
+        let ffmpeg_path = Self::may_get("FFMPEG_PATH", None);
+        let djxl_path = Self::may_get("DJXL_PATH", None);
+        let decode_log = Self::may_get("DECODE_LOG", None);
+
         Self {
+            library_path,
             app_name,
             server_address,
             server_port,
@@ -68,6 +76,10 @@ impl Config {
             smtp_password,
             smtp_from_email,
             smtp_from_name,
+
+            ffmpeg_path,
+            djxl_path,
+            decode_log,
         }
     }
 }
