@@ -32,6 +32,7 @@ mod models;
 mod routes;
 mod scanner;
 mod utils;
+mod watcher;
 
 pub struct AppState {
     db: DatabaseConnection,
