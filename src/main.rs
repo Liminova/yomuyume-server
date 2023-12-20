@@ -30,6 +30,7 @@ mod middlewares;
 mod migrator;
 mod models;
 mod routes;
+mod scanner;
 mod utils;
 
 pub struct AppState {
@@ -122,12 +123,24 @@ async fn main() -> Result<(), DbErr> {
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
-        .with_state(app_state);
+        .with_state(app_state.clone());
 
     let addr = addr_str.parse::<SocketAddr>().unwrap();
     let listener = TcpListener::bind(&addr).await.unwrap();
-    tracing::debug!("listening on: {}", addr);
-    let _ = axum::serve(listener, app.into_make_service()).await;
+
+    let server_handle = tokio::spawn(async move {
+        tracing::debug!("listening on: {}", addr);
+        if let Err(e) = axum::serve(listener, app.into_make_service()).await {
+            tracing::error!("server error: {}", e);
+        };
+    });
+
+    let scanner_handle = tokio::spawn(async move {
+        scanner::scanner(app_state.clone()).await.unwrap();
+    });
+
+    let _ = server_handle.await;
+    let _ = scanner_handle.await;
 
     Ok(())
 }
