@@ -20,6 +20,7 @@ jsonwebtoken = "9.2.0"
 lettre = "0.11.2"
 notify = "6.1.1"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
+rayon = "1.8.0"
 sea-orm = { version = "0.12.6", features = [
     "runtime-tokio-rustls",
     "mock",
@@ -42,6 +43,7 @@ utoipa = { version = "4.1.0", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-redoc = { version = "2.0.0", features = ["axum"] }
 utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
+zip = "0.6.6"
 
 [dev-dependencies]
 axum-test = "14.0.0"
