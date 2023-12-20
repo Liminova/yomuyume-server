@@ -1,5 +1,6 @@
 use crate::utils::BlurhashResult;
 use crate::{utils::Blurhash, AppState};
+use async_recursion::async_recursion;
 use rayon::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -30,6 +31,7 @@ async fn scan_library(library_path: &str) -> Vec<PathBuf> {
 }
 
 /// Scanning all title inside a category
+#[async_recursion]
 async fn scan_category(item_dir: &PathBuf) -> Vec<PathBuf> {
     let mut files = Vec::new();
     let mut entries = match tokio::fs::read_dir(item_dir).await {
@@ -43,7 +45,7 @@ async fn scan_category(item_dir: &PathBuf) -> Vec<PathBuf> {
     'next_title: while let Some(entry) = entries.next_entry().await.unwrap_or_default() {
         let path = entry.path();
         if path.is_dir() {
-            continue 'next_title;
+            files.extend(scan_category(&path).await);
         }
         let ext = path
             .extension()
