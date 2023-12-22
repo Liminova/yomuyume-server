@@ -9,12 +9,12 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     pub title: String,
-    pub title_image: Option<String>,
     pub category_id: String,
-    pub thumbnail_id: String,
     pub author: Option<String>,
     pub description: Option<String>,
     pub release_date: Option<String>,
+    pub hash: String,
+    pub path: String,
     pub date_added: String,
     pub date_updated: String,
 }
