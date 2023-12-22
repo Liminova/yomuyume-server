@@ -27,7 +27,7 @@ impl MigrationTrait for Migration {
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .col(ColumnDef::new(Pages::Path).string().not_null())
-            .col(ColumnDef::new(Pages::Hash).string().not_null())
+            .col(ColumnDef::new(Pages::Blurhash).string().not_null())
             .col(ColumnDef::new(Pages::Width).integer().not_null())
             .col(ColumnDef::new(Pages::Height).integer().not_null())
             .col(ColumnDef::new(Pages::Description).string())
@@ -47,7 +47,7 @@ pub enum Pages {
     Id,
     TitleId,
     Path,
-    Hash,
+    Blurhash,
     Width,
     Height,
     Description,

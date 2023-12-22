@@ -15,14 +15,9 @@ impl MigrationTrait for Migration {
         let table = Table::create()
             .table(Thumbnails::Table)
             .if_not_exists()
-            .col(
-                ColumnDef::new(Thumbnails::Id)
-                    .integer()
-                    .auto_increment()
-                    .primary_key(),
-            )
+            .col(ColumnDef::new(Thumbnails::Id).string().primary_key())
             .col(ColumnDef::new(Thumbnails::Path).string().not_null())
-            .col(ColumnDef::new(Thumbnails::Hash).string().not_null())
+            .col(ColumnDef::new(Thumbnails::Blurhash).string().not_null())
             .col(ColumnDef::new(Thumbnails::Width).integer().not_null())
             .col(ColumnDef::new(Thumbnails::Height).integer().not_null())
             .to_owned();
@@ -40,7 +35,7 @@ pub enum Thumbnails {
     Table,
     Id,
     Path,
-    Hash,
+    Blurhash,
     Width,
     Height,
 }
