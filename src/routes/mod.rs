@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod index;
+pub mod middlewares;
 pub mod pages;
 pub mod user;
 pub mod utils;
@@ -11,10 +12,14 @@ pub use self::{
     user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
     utils::{StatusRequest, StatusResponseBody, TagsMapResponseBody},
 };
+pub use middlewares::auth::auth;
+
 use crate::models::{
     categories::Model as Category, pages::Model as Page, titles::Model as Title,
     users::Model as User,
 };
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use axum::{http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
@@ -124,3 +129,40 @@ pub struct ApiResponse<T> {
     ))
 )]
 pub struct ApiDoc;
+
+fn build_resp<T: Serialize>(
+    status: StatusCode,
+    description: String,
+    body: T,
+) -> (StatusCode, Json<ApiResponse<T>>) {
+    (
+        status,
+        Json(ApiResponse {
+            description,
+            body: Some(body),
+        }),
+    )
+}
+
+fn build_err_resp(
+    status: StatusCode,
+    description: String,
+    body: String,
+) -> (StatusCode, Json<ApiResponse<ErrorResponseBody>>) {
+    (
+        status,
+        Json(ApiResponse {
+            description,
+            body: Some(ErrorResponseBody { message: body }),
+        }),
+    )
+}
+
+pub fn check_pass(real: &str, input: &String) -> bool {
+    match PasswordHash::new(real) {
+        Ok(parsed_hash) => Argon2::default()
+            .verify_password(input.as_bytes(), &parsed_hash)
+            .map_or(false, |_| true),
+        Err(_) => false,
+    }
+}

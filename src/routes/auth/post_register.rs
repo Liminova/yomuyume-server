@@ -1,7 +1,7 @@
+use super::build_err_resp;
 use crate::{
     models::{prelude::Users, users},
     routes::{ApiResponse, ErrorResponseBody},
-    utils::build_err_resp,
     AppState,
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};

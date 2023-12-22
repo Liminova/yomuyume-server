@@ -5,10 +5,10 @@ use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use super::{build_err_resp, build_resp};
 use crate::{
     models::tags,
     routes::{ApiResponse, ErrorResponseBody},
-    utils::{build_err_resp, build_resp},
     AppState,
 };
 

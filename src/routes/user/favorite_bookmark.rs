@@ -1,7 +1,7 @@
+use super::build_err_resp;
 use crate::{
     models::{bookmarks, favorites, prelude::Titles, users},
     routes::{ApiResponse, ErrorResponseBody},
-    utils::build_err_resp,
     AppState,
 };
 use axum::{
@@ -41,12 +41,12 @@ pub async fn put_favorite(
             )
         })?;
 
-    let condition = Condition::all()
-        .add(favorites::Column::TitleId.contains(&title.id))
-        .add(favorites::Column::UserId.contains(&user.id));
-
     let _ = favorites::Entity::find()
-        .filter(condition)
+        .filter(
+            Condition::all()
+                .add(favorites::Column::TitleId.contains(&title.id))
+                .add(favorites::Column::UserId.contains(&user.id)),
+        )
         .one(&data.db)
         .await
         .map_err(|e| {
@@ -112,12 +112,12 @@ pub async fn put_bookmark(
             )
         })?;
 
-    let condition = Condition::all()
-        .add(bookmarks::Column::TitleId.contains(&title.id))
-        .add(bookmarks::Column::UserId.contains(&user.id));
-
     let _ = bookmarks::Entity::find()
-        .filter(condition)
+        .filter(
+            Condition::all()
+                .add(bookmarks::Column::TitleId.contains(&title.id))
+                .add(bookmarks::Column::UserId.contains(&user.id)),
+        )
         .one(&data.db)
         .await
         .map_err(|e| {
@@ -183,12 +183,12 @@ pub async fn delete_favorite(
             )
         })?;
 
-    let condition = Condition::all()
-        .add(favorites::Column::TitleId.contains(&title.id))
-        .add(favorites::Column::UserId.contains(&user.id));
-
     favorites::Entity::delete_many()
-        .filter(condition)
+        .filter(
+            Condition::all()
+                .add(favorites::Column::TitleId.contains(&title.id))
+                .add(favorites::Column::UserId.contains(&user.id)),
+        )
         .exec(&data.db)
         .await
         .map_err(|e| {
@@ -230,12 +230,12 @@ pub async fn delete_bookmark(
             )
         })?;
 
-    let condition = Condition::all()
-        .add(bookmarks::Column::TitleId.contains(&title.id))
-        .add(bookmarks::Column::UserId.contains(&user.id));
-
     bookmarks::Entity::delete_many()
-        .filter(condition)
+        .filter(
+            Condition::all()
+                .add(bookmarks::Column::TitleId.contains(&title.id))
+                .add(bookmarks::Column::UserId.contains(&user.id)),
+        )
         .exec(&data.db)
         .await
         .map_err(|e| {

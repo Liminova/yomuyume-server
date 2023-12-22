@@ -1,10 +1,10 @@
+use super::{build_err_resp, sendmail};
 use crate::{
     models::{
         auth::{TokenClaims, TokenClaimsPurpose},
         users,
     },
     routes::{ApiResponse, ErrorResponseBody},
-    utils::{build_err_resp, sendmail},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};

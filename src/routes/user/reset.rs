@@ -1,9 +1,9 @@
+use super::{build_err_resp, sendmail};
 use crate::models::auth::TokenClaims;
 use crate::models::prelude::Users;
 use crate::{
     models::{auth::TokenClaimsPurpose, users},
     routes::{ApiResponse, ErrorResponseBody},
-    utils::{build_err_resp, sendmail},
     AppState,
 };
 use argon2::password_hash::SaltString;

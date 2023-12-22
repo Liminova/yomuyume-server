@@ -1,11 +1,11 @@
 use super::super::{ApiResponse, ErrorResponseBody};
+use super::{build_err_resp, build_resp};
 use crate::{
     models::{
         bookmarks, favorites,
         prelude::{Pages, Thumbnails, Titles},
         progresses, titles_tags, users,
     },
-    utils::{build_err_resp, build_resp},
     AppState,
 };
 use axum::{
@@ -92,7 +92,7 @@ pub async fn get_title(
             )
         })?;
 
-    let thumbnail = Thumbnails::find_by_id(&title.thumbnail_id)
+    let thumbnail = Thumbnails::find_by_id(&title.id)
         .one(&data.db)
         .await
         .map_err(|e| {
@@ -122,8 +122,11 @@ pub async fn get_title(
         })?;
 
     let is_favorite = favorites::Entity::find()
-        .having(favorites::Column::UserId.eq(&user.id))
-        .having(favorites::Column::TitleId.eq(&title.id))
+        .filter(
+            Condition::all()
+                .add(favorites::Column::UserId.eq(&user.id))
+                .add(favorites::Column::TitleId.eq(&title.id)),
+        )
         .one(&data.db)
         .await
         .map_err(|e| {
@@ -136,8 +139,11 @@ pub async fn get_title(
         .map(|_| true);
 
     let is_bookmark = users::Entity::find()
-        .having(bookmarks::Column::UserId.eq(&user.id))
-        .having(bookmarks::Column::TitleId.eq(&title.id))
+        .filter(
+            Condition::all()
+                .add(bookmarks::Column::UserId.eq(&user.id))
+                .add(bookmarks::Column::TitleId.eq(&title.id)),
+        )
         .one(&data.db)
         .await
         .map_err(|e| {
@@ -150,8 +156,11 @@ pub async fn get_title(
         .map(|_| true);
 
     let page_read = progresses::Entity::find()
-        .having(progresses::Column::UserId.eq(&user.id))
-        .having(progresses::Column::TitleId.eq(&title.id))
+        .filter(
+            Condition::all()
+                .add(progresses::Column::UserId.eq(&user.id))
+                .add(progresses::Column::TitleId.eq(&title.id)),
+        )
         .one(&data.db)
         .await
         .map_err(|e| {
@@ -164,7 +173,7 @@ pub async fn get_title(
         .map(|p| p.page);
 
     let favorites = match favorites::Entity::find()
-        .having(favorites::Column::TitleId.eq(&title.id))
+        .filter(favorites::Column::TitleId.eq(&title.id))
         .count(&data.db)
         .await
         .map_err(|e| {
@@ -179,7 +188,7 @@ pub async fn get_title(
     };
 
     let tag_ids = titles_tags::Entity::find()
-        .having(titles_tags::Column::TitleId.eq(&title.id))
+        .filter(titles_tags::Column::TitleId.eq(&title.id))
         .all(&data.db)
         .await
         .map_err(|e| {
@@ -201,7 +210,7 @@ pub async fn get_title(
         release_date: title.release_date,
         thumbnail: ResponseThumbnail {
             id: thumbnail.id,
-            hash: thumbnail.hash,
+            hash: thumbnail.blurhash,
             width: thumbnail.width,
             height: thumbnail.height,
         },

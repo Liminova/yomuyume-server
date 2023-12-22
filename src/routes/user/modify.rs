@@ -1,7 +1,7 @@
+use super::{build_err_resp, check_pass};
 use crate::{
     models::users,
     routes::{ApiResponse, ErrorResponseBody},
-    utils::{build_err_resp, check_pass},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};

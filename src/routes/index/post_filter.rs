@@ -1,10 +1,8 @@
 use super::super::{ApiResponse, ErrorResponseBody};
+use super::{build_err_resp, build_resp};
+use super::{find_favorite_count, find_page_count, find_page_read};
 use crate::models::{titles, titles_tags};
-use crate::{
-    models::users,
-    utils::{build_err_resp, build_resp, find_favorite_count, find_page_count, find_page_read},
-    AppState,
-};
+use crate::{models::users, AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, QuerySelect, QueryTrait};
 use serde::{Deserialize, Serialize};
@@ -29,10 +27,7 @@ pub struct FilterTitleResponseBody {
     title: String,
     author: Option<String>,
     categories_id: String,
-    thumbnail_id: String,
     release_date: Option<String>,
-    date_added: String,
-    date_updated: String,
     favorite_count: Option<u32>,
     page_count: u32,
     page_read: Option<u32>,
@@ -130,10 +125,7 @@ pub async fn post_filter(
             title: title.title,
             author: title.author,
             categories_id: title.category_id,
-            thumbnail_id: title.thumbnail_id,
             release_date: title.release_date,
-            date_added: title.date_added,
-            date_updated: title.date_updated,
             favorite_count,
             page_count,
             page_read,

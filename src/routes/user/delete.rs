@@ -1,9 +1,9 @@
+use super::{build_err_resp, check_pass, sendmail};
 use crate::models::auth::{TokenClaims, TokenClaimsPurpose};
 use crate::models::users::Entity as Users;
 use crate::{
     models::users,
     routes::{ApiResponse, ErrorResponseBody},
-    utils::{build_err_resp, check_pass, sendmail},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};

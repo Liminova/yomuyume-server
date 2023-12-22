@@ -1,9 +1,8 @@
+use super::{build_err_resp, check_pass};
 use crate::models::users;
-
 use crate::{
     models::{auth::TokenClaims, prelude::Users},
     routes::{ApiResponse, ErrorResponseBody},
-    utils::{build_err_resp, check_pass},
     AppState,
 };
 use axum::{
