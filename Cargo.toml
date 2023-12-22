@@ -15,6 +15,7 @@ blurhash = "0.2.0"
 chrono = { version = "0.4.30", features = ["serde"] }
 dotenvy = "0.15.7"
 email_address = "0.2.4"
+fasthash = "0.4.0"
 http-serde = "2.0.0"
 image = { version = "0.24.7" }
 jsonwebtoken = "9.2.0"
@@ -37,6 +38,7 @@ serde-email = "3.0.0"
 serde_json = "1.0.108"
 time = "0.3.30"
 tokio = { version = "1.32.0", features = ["full"] }
+toml_edit = "0.21.0"
 tower-http = { version = "0.5.0", features = ["tracing", "trace", "cors"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
