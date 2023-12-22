@@ -6,16 +6,10 @@ mod scan_category;
 mod scan_extracted;
 mod scan_library;
 mod scanner;
-use std::path::{Path, PathBuf};
 
 use blurhash::{Blurhash, BlurhashResult};
+use std::path::{Path, PathBuf};
 
-// use self::scan_library::ScannedCategory;
-// use crate::AppState;
-// use blurhash::{Blurhash, BlurhashResult};
-// use scan_library::scan_library;
-// use std::path::PathBuf;
-// use std::sync::Arc;
 pub use scanner::Scanner;
 
 /// Explicit/Implicit file name finder
