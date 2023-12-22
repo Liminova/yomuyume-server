@@ -1,4 +1,8 @@
-use crate::{config::Config, middlewares::auth::auth, migrator::Migrator, routes::ApiDoc};
+use crate::{
+    config::Config,
+    migrator::Migrator,
+    routes::{auth, ApiDoc},
+};
 use axum::{
     middleware::from_fn_with_state as apply,
     routing::{get, post, put},
@@ -26,13 +30,10 @@ use utoipa_swagger_ui::SwaggerUi;
 
 mod config;
 mod constants;
-mod middlewares;
+mod livescan;
 mod migrator;
 mod models;
 mod routes;
-mod scanner;
-mod utils;
-mod watcher;
 
 pub struct AppState {
     db: DatabaseConnection,
@@ -137,7 +138,8 @@ async fn main() -> Result<(), DbErr> {
     });
 
     let scanner_handle = tokio::spawn(async move {
-        scanner::scanner(app_state.clone()).await.unwrap();
+        let instance = livescan::Scanner::default(app_state.clone());
+        instance.await.run().await.unwrap();
     });
 
     let _ = server_handle.await;
