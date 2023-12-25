@@ -1,8 +1,11 @@
+use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter};
+use tracing::debug;
+
 use super::{
     scan_library::{scan_library, ScannedCategory},
     Blurhash,
 };
-use crate::AppState;
+use crate::{models::prelude::*, AppState};
 use std::{path::PathBuf, sync::Arc};
 
 pub struct Scanner {
@@ -24,12 +27,10 @@ impl Scanner {
         Self {
             app_state,
             temp_dir,
-            image_formats: vec![
-                "jxl", "avif", "webp", "png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif",
-            ]
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect(),
+            image_formats: crate::constants::extended_img_formats()
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect(),
             blurhash: Blurhash {
                 ffmpeg_path,
                 djxl_path,
@@ -39,9 +40,38 @@ impl Scanner {
         }
     }
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut category_ids = Vec::new();
+
         for category in &self.categories {
-            let _ = self.handle_category(category).await;
+            category_ids.push(self.handle_category(category).await?);
         }
+
+        debug!("Category IDs: {:?}", category_ids);
+
+        let category_ids_in_db = Categories::find()
+            .all(&self.app_state.db)
+            .await?
+            .into_iter()
+            .map(|c| c.id)
+            .collect::<Vec<String>>();
+
+        let category_ids_to_delete = category_ids_in_db
+            .into_iter()
+            .filter(|id| !category_ids.contains(id))
+            .collect::<Vec<String>>();
+
+        let mut condition = Condition::any();
+        for id in &category_ids_to_delete {
+            condition = condition.add(categories::Column::Id.eq(id));
+        }
+
+        debug!("Deleting categories: {:?}", category_ids_to_delete);
+
+        let _ = Categories::delete_many()
+            .filter(condition)
+            .exec(&self.app_state.db)
+            .await?;
+
         Ok(())
     }
 }

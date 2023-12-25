@@ -1,6 +1,6 @@
+use crate::constants::native_img_formats;
 use blurhash::encode;
-use image::DynamicImage;
-use image::{imageops::FilterType::Gaussian, GenericImageView};
+use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 use std::path::PathBuf;
 use std::{fs, process::Command};
 use tracing::{debug, error, warn};
@@ -12,14 +12,32 @@ pub struct Blurhash {
     pub ffmpeg_log_path: Option<String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct BlurhashResult {
     pub blurhash: String,
     pub width: u32,
     pub height: u32,
+    /// This is the file's name, not the full path
     pub filename: String,
 }
 
 impl Blurhash {
+    /// Encodes the image at the given path into a blurhash.
+    ///
+    /// # Arguments
+    ///
+    /// * `image_path` - A path to the image to encode.
+    /// * `format` - The format of the image (e.g., "png", "jpg").
+    ///
+    /// # Returns
+    ///
+    /// * `Option<BlurhashResult>` - The result of the encoding, or `None` if the encoding failed.
+    ///
+    /// # Note
+    ///
+    /// Being called in thumbnail_finder and handle_tite, there're already a
+    /// extension extraction to check against the supported formats, no need to
+    /// re-extract the extension again, wasting cpu cycles.
     #[tracing::instrument]
     pub fn encode(&self, image_path: &PathBuf, format: &str) -> Option<BlurhashResult> {
         let input_img_path = image_path.to_str().unwrap_or_default();
@@ -59,10 +77,9 @@ impl Blurhash {
 
     #[tracing::instrument]
     pub fn transcode(&self, in_file: &str, format: &str) -> Option<DynamicImage> {
-        let native_formats = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"];
         match format {
-            format if native_formats.contains(&format) => {
-                debug!("using native decoder");
+            format if native_img_formats().contains(&format) => {
+                debug!("native");
                 image::open(in_file)
                     .map_err(|err| {
                         error!("failed to open: {}", err);
@@ -71,11 +88,11 @@ impl Blurhash {
                     .ok()
             }
             "jxl" => {
-                debug!("using djxl");
+                debug!("djxl");
                 self.jpegxl(in_file)
             }
             _ => {
-                debug!("using ffmpeg");
+                debug!("ffmpeg");
                 self.ffmpeg(in_file)
             }
         }
