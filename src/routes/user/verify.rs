@@ -2,7 +2,7 @@ use super::{build_err_resp, sendmail};
 use crate::{
     models::{
         auth::{TokenClaims, TokenClaimsPurpose},
-        users,
+        prelude::*,
     },
     routes::{ApiResponse, ErrorResponseBody},
     AppState,

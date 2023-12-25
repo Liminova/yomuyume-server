@@ -1,10 +1,8 @@
-use super::super::{ApiResponse, ErrorResponseBody};
-use super::{build_err_resp, build_resp};
-use crate::{
-    models::{categories::Model as Category, prelude::Categories},
-    // utils::{build_err_resp, build_resp},
-    AppState,
+use super::{
+    super::{ApiResponse, ErrorResponseBody},
+    build_err_resp, build_resp,
 };
+use crate::{models::prelude::*, AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sea_orm::*;
 use serde::Serialize;
@@ -14,7 +12,7 @@ use utoipa::ToSchema;
 #[derive(Serialize, ToSchema)]
 pub struct CategoriesResponseBody {
     /// A list of all categories fetched.
-    pub data: Vec<Category>,
+    pub data: Vec<categories::Model>,
 }
 
 /// Get all categories to be displayed on the library page.
@@ -25,7 +23,7 @@ pub struct CategoriesResponseBody {
 pub async fn get_categories(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let categories: Vec<Category> = Categories::find().all(&data.db).await.map_err(|e| {
+    let categories = Categories::find().all(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("An internal server error has occurred."),

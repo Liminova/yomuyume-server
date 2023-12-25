@@ -1,8 +1,9 @@
 use super::{build_err_resp, check_pass, sendmail};
-use crate::models::auth::{TokenClaims, TokenClaimsPurpose};
-use crate::models::users::Entity as Users;
 use crate::{
-    models::users,
+    models::{
+        auth::{TokenClaims, TokenClaimsPurpose},
+        prelude::*,
+    },
     routes::{ApiResponse, ErrorResponseBody},
     AppState,
 };

@@ -1,8 +1,7 @@
 use super::super::build_err_resp;
-use crate::routes::ApiResponse;
-use crate::routes::ErrorResponseBody;
 use crate::{
-    models::{auth::TokenClaims, prelude::Users, users::Model as User},
+    models::{auth::TokenClaims, prelude::*},
+    routes::{ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{
@@ -68,16 +67,17 @@ pub async fn auth(
         )
     })?;
 
-    let user: Option<User> = Users::find_by_id(user_id)
-        .one(&data.db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Database error: {}", e),
-            )
-        })?;
+    let user: Option<users::Model> =
+        Users::find_by_id(user_id)
+            .one(&data.db)
+            .await
+            .map_err(|e| {
+                build_err_resp(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    String::from("An internal server error has occurred."),
+                    format!("Database error: {}", e),
+                )
+            })?;
 
     if let Some(user) = user {
         req.extensions_mut().insert(user);

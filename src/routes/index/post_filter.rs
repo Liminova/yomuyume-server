@@ -1,8 +1,8 @@
-use super::super::{ApiResponse, ErrorResponseBody};
-use super::{build_err_resp, build_resp};
-use super::{find_favorite_count, find_page_count, find_page_read};
-use crate::models::{titles, titles_tags};
-use crate::{models::users, AppState};
+use super::{
+    super::{ApiResponse, ErrorResponseBody},
+    build_err_resp, build_resp, find_favorite_count, find_page_count, find_page_read,
+};
+use crate::{models::prelude::*, AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, QuerySelect, QueryTrait};
 use serde::{Deserialize, Serialize};
@@ -83,7 +83,7 @@ pub async fn post_filter(
 
     if let Some(tag_ids) = tag_ids {
         for tag_id in tag_ids {
-            let title_tag_has_tag_id = titles_tags::Entity::find()
+            let title_tag_has_tag_id = TitlesTags::find()
                 .filter(titles_tags::Column::TagId.eq(tag_id))
                 .all(&data.db)
                 .await
@@ -101,7 +101,7 @@ pub async fn post_filter(
         }
     }
 
-    let found_titles = titles::Entity::find()
+    let found_titles = Titles::find()
         .apply_if(limit.map(|limit| limit as u64), QuerySelect::limit)
         .filter(condition)
         .all(&data.db)

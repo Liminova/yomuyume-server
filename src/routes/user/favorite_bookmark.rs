@@ -1,6 +1,6 @@
 use super::build_err_resp;
 use crate::{
-    models::{bookmarks, favorites, prelude::Titles, users},
+    models::prelude::*,
     routes::{ApiResponse, ErrorResponseBody},
     AppState,
 };
@@ -41,7 +41,7 @@ pub async fn put_favorite(
             )
         })?;
 
-    let _ = favorites::Entity::find()
+    let _ = Favorites::find()
         .filter(
             Condition::all()
                 .add(favorites::Column::TitleId.contains(&title.id))
@@ -70,7 +70,7 @@ pub async fn put_favorite(
         user_id: Set(user.id),
     };
 
-    favorites::Entity::insert(active_favorite)
+    Favorites::insert(active_favorite)
         .exec(&data.db)
         .await
         .map_err(|e| {
@@ -112,7 +112,7 @@ pub async fn put_bookmark(
             )
         })?;
 
-    let _ = bookmarks::Entity::find()
+    let _ = Bookmarks::find()
         .filter(
             Condition::all()
                 .add(bookmarks::Column::TitleId.contains(&title.id))
@@ -141,7 +141,7 @@ pub async fn put_bookmark(
         user_id: Set(user.id),
     };
 
-    favorites::Entity::insert(active_bookmark)
+    Favorites::insert(active_bookmark)
         .exec(&data.db)
         .await
         .map_err(|e| {
@@ -183,7 +183,7 @@ pub async fn delete_favorite(
             )
         })?;
 
-    favorites::Entity::delete_many()
+    Favorites::delete_many()
         .filter(
             Condition::all()
                 .add(favorites::Column::TitleId.contains(&title.id))
@@ -230,7 +230,7 @@ pub async fn delete_bookmark(
             )
         })?;
 
-    bookmarks::Entity::delete_many()
+    Bookmarks::delete_many()
         .filter(
             Condition::all()
                 .add(bookmarks::Column::TitleId.contains(&title.id))

@@ -1,13 +1,8 @@
-use super::super::{ApiResponse, ErrorResponseBody};
-use super::{build_err_resp, build_resp};
-use crate::{
-    models::{
-        bookmarks, favorites,
-        prelude::{Pages, Thumbnails, Titles},
-        progresses, titles_tags, users,
-    },
-    AppState,
+use super::{
+    super::{ApiResponse, ErrorResponseBody},
+    build_err_resp, build_resp,
 };
+use crate::{models::prelude::*, AppState};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -24,7 +19,7 @@ use uuid::Uuid;
 pub struct ResponsePage {
     pub id: String,
     pub title_id: String,
-    pub hash: String,
+    pub blurhash: String,
     pub width: u32,
     pub height: u32,
     pub description: Option<String>,
@@ -72,7 +67,7 @@ pub struct TitleResponseBody {
 pub async fn get_title(
     State(data): State<Arc<AppState>>,
     Path(title_id): Path<Uuid>,
-    Extension(user): Extension<crate::models::users::Model>,
+    Extension(user): Extension<users::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let title = Titles::find_by_id(title_id)
         .one(&data.db)
@@ -121,7 +116,7 @@ pub async fn get_title(
             )
         })?;
 
-    let is_favorite = favorites::Entity::find()
+    let is_favorite = Favorites::find()
         .filter(
             Condition::all()
                 .add(favorites::Column::UserId.eq(&user.id))
@@ -138,7 +133,7 @@ pub async fn get_title(
         })?
         .map(|_| true);
 
-    let is_bookmark = users::Entity::find()
+    let is_bookmark = Users::find()
         .filter(
             Condition::all()
                 .add(bookmarks::Column::UserId.eq(&user.id))
@@ -155,7 +150,7 @@ pub async fn get_title(
         })?
         .map(|_| true);
 
-    let page_read = progresses::Entity::find()
+    let page_read = Progresses::find()
         .filter(
             Condition::all()
                 .add(progresses::Column::UserId.eq(&user.id))
@@ -172,7 +167,7 @@ pub async fn get_title(
         })?
         .map(|p| p.page);
 
-    let favorites = match favorites::Entity::find()
+    let favorites = match Favorites::find()
         .filter(favorites::Column::TitleId.eq(&title.id))
         .count(&data.db)
         .await
@@ -187,7 +182,7 @@ pub async fn get_title(
         n => Some(n),
     };
 
-    let tag_ids = titles_tags::Entity::find()
+    let tag_ids = TitlesTags::find()
         .filter(titles_tags::Column::TitleId.eq(&title.id))
         .all(&data.db)
         .await
@@ -216,14 +211,14 @@ pub async fn get_title(
         },
         tag_ids,
         pages: pages
-            .iter()
+            .into_iter()
             .map(|page| ResponsePage {
-                id: page.id.clone(),
-                title_id: page.title_id.clone(),
-                hash: page.hash.clone(),
+                id: page.id,
+                title_id: page.title_id,
+                blurhash: page.blurhash,
                 width: page.width,
                 height: page.height,
-                description: page.description.clone(),
+                description: page.description,
             })
             .collect::<Vec<_>>(),
         favorites,

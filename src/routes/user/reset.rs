@@ -1,15 +1,19 @@
 use super::{build_err_resp, sendmail};
-use crate::models::auth::TokenClaims;
-use crate::models::prelude::Users;
 use crate::{
-    models::{auth::TokenClaimsPurpose, users},
+    models::{
+        auth::{TokenClaims, TokenClaimsPurpose},
+        prelude::*,
+    },
     routes::{ApiResponse, ErrorResponseBody},
     AppState,
 };
-use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use axum::extract::Path;
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Extension, Json,
+};
 use rand_core::OsRng;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};

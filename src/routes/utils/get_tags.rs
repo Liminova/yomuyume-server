@@ -1,16 +1,14 @@
-use std::sync::Arc;
-
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use sea_orm::EntityTrait;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-
 use super::{build_err_resp, build_resp};
 use crate::{
-    models::tags,
+    models::prelude::*,
     routes::{ApiResponse, ErrorResponseBody},
     AppState,
 };
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use sea_orm::EntityTrait;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct TagsMapResponseBody {
@@ -24,7 +22,7 @@ pub struct TagsMapResponseBody {
 pub async fn get_tags(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let tags = tags::Entity::find().all(&data.db).await.map_err(|_| {
+    let tags = Tags::find().all(&data.db).await.map_err(|_| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("An internal server error has occurred."),
@@ -34,7 +32,7 @@ pub async fn get_tags(
 
     let mut tag_map = Vec::new();
     for tag in tags {
-        let tag = tags::Entity::find_by_id(tag.id)
+        let tag = Tags::find_by_id(tag.id)
             .one(&data.db)
             .await
             .map_err(|_| {

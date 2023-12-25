@@ -1,7 +1,6 @@
 use super::build_resp;
 use crate::constants::version::get_version;
-use axum::http::StatusCode;
-use axum::{extract::Query, response::IntoResponse, Json};
+use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};

@@ -3,7 +3,7 @@ mod get_title;
 mod post_filter;
 
 use super::{build_err_resp, build_resp};
-use crate::models::{favorites, pages, progresses};
+use crate::models::prelude::*;
 use axum::http::StatusCode;
 
 pub use get_categories::{get_categories, CategoriesResponseBody};
@@ -16,7 +16,7 @@ pub use post_filter::__path_post_filter;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
 
 pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
-    let pages = pages::Entity::find()
+    let pages = Pages::find()
         .filter(pages::Column::TitleId.contains(title_id))
         .all(db)
         .await
@@ -36,7 +36,7 @@ pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
 }
 
 pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &str) -> Option<u32> {
-    let progresses = progresses::Entity::find()
+    let progresses = Progresses::find()
         .filter(
             Condition::all()
                 .add(progresses::Column::TitleId.eq(title_id))
@@ -60,7 +60,7 @@ pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &s
 }
 
 pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Option<u32> {
-    let favorites = favorites::Entity::find()
+    let favorites = Favorites::find()
         .filter(favorites::Column::TitleId.contains(title_id))
         .all(db)
         .await

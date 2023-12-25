@@ -1,6 +1,6 @@
 use super::build_err_resp;
 use crate::{
-    models::{prelude::Users, users},
+    models::prelude::*,
     routes::{ApiResponse, ErrorResponseBody},
     AppState,
 };

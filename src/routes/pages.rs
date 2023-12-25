@@ -1,10 +1,5 @@
-use super::{build_err_resp, build_resp};
-use super::{ApiResponse, ErrorResponseBody};
-use crate::{
-    models::{pages::Model as Page, prelude::Pages, titles},
-    // utils::{build_err_resp, build_resp},
-    AppState,
-};
+use super::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody};
+use crate::{models::prelude::*, AppState};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -19,12 +14,12 @@ use uuid::Uuid;
 
 #[derive(Serialize, ToSchema)]
 pub struct PagesResponseBody {
-    pub data: Vec<Page>,
+    pub data: Vec<pages::Model>,
 }
 
 #[derive(Serialize, ToSchema)]
 pub struct PageResponseBody {
-    pub data: Page,
+    pub data: pages::Model,
 }
 
 #[utoipa::path(get, path = "/api/pages", responses(
@@ -34,7 +29,7 @@ pub struct PageResponseBody {
 pub async fn get_pages(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let pages: Vec<Page> = Pages::find().all(&data.db).await.map_err(|e| {
+    let pages: Vec<pages::Model> = Pages::find().all(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("An internal server error has occurred."),
@@ -58,16 +53,17 @@ pub async fn get_page(
     State(data): State<Arc<AppState>>,
     Path(page_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let page: Option<Page> = Pages::find_by_id(page_id)
-        .one(&data.db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
-                format!("Database error: {}", e),
-            )
-        })?;
+    let page: Option<pages::Model> =
+        Pages::find_by_id(page_id)
+            .one(&data.db)
+            .await
+            .map_err(|e| {
+                build_err_resp(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    String::from("An internal server error has occurred."),
+                    format!("Database error: {}", e),
+                )
+            })?;
 
     let resp = match page {
         Some(p) => build_resp(
@@ -96,7 +92,7 @@ pub async fn get_pages_by_title_id(
     State(data): State<Arc<AppState>>,
     Path(title_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let pages: Vec<Page> = Pages::find()
+    let pages: Vec<pages::Model> = Pages::find()
         .filter(titles::Column::Id.eq(title_id))
         .all(&data.db)
         .await
