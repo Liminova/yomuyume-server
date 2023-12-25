@@ -8,3 +8,8 @@ pub use super::thumbnails::Entity as Thumbnails;
 pub use super::titles::Entity as Titles;
 pub use super::titles_tags::Entity as TitlesTags;
 pub use super::users::Entity as Users;
+
+pub use super::{
+    bookmarks, categories, favorites, pages, progresses, tags, thumbnails, titles, titles_tags,
+    users,
+};
