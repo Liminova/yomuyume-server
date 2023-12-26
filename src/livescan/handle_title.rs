@@ -104,7 +104,7 @@ impl Scanner {
 
                 // Thumbnail field in metadata != in DB -> re-encode thumbnail
                 let thumbnail_in_db = Thumbnails::find()
-                    .filter(thumbnails::Column::Id.eq(title_id.clone()))
+                    .filter(thumbnails::Column::Id.eq(&title_id))
                     .one(&self.app_state.db)
                     .await
                     .map_err(|e| {
@@ -115,7 +115,7 @@ impl Scanner {
                 if thumbnail_in_db != title_metadata.thumbnail {
                     info!("thumbnail in DB != in metadata, re-encoding");
                     let _ = Thumbnails::delete_many()
-                        .filter(thumbnails::Column::Id.eq(title_id.clone()))
+                        .filter(thumbnails::Column::Id.eq(&title_id))
                         .exec(&self.app_state.db)
                         .await
                         .map_err(|e| {
@@ -172,7 +172,7 @@ impl Scanner {
         // By hash -> found match ? update metadata to match : encode -> return
         // Found match means nothing in the title.zip changed, so we can skip encoding pages
         match Titles::find()
-            .filter(titles::Column::Hash.eq(current_title_hash.clone()))
+            .filter(titles::Column::Hash.eq(&current_title_hash))
             .one(&self.app_state.db)
             .await
         {
@@ -265,7 +265,7 @@ impl Scanner {
             e
         })?;
         let tag_id = tags::Entity::find()
-            .filter(tags::Column::Name.eq(title.name.clone()))
+            .filter(tags::Column::Name.eq(&title.name))
             .one(&self.app_state.db)
             .await
             .map_err(|e| {
@@ -317,7 +317,7 @@ impl Scanner {
 
         /* #region - clear old, push new page to DB */
         let deleted = Pages::delete_many()
-            .filter(pages::Column::TitleId.eq(title_id.clone()))
+            .filter(pages::Column::TitleId.eq(&title_id))
             .exec(&self.app_state.db)
             .await
             .map_err(|e| {
@@ -352,7 +352,7 @@ impl Scanner {
 
         /* #region - title thumbnail */
         let _ = Thumbnails::delete_many()
-            .filter(thumbnails::Column::Id.eq(title_id.clone()))
+            .filter(thumbnails::Column::Id.eq(&title_id))
             .exec(&self.app_state.db)
             .await
             .map_err(|e| {
