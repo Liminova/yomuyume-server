@@ -10,6 +10,7 @@ use axum::{
 };
 use routes::{
     auth::{get_logout, post_login, post_register},
+    file::get_page,
     index::{get_categories, get_title, post_filter},
     user::{
         delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
@@ -107,6 +108,7 @@ async fn main() -> Result<(), DbErr> {
         .route("/title/:title_id", get(get_title))
         .layer(apply(app_state.clone(), auth));
 
+    let file_routes = Router::new()
         .route("/page/:page_id", get(get_page))
         .layer(apply(app_state.clone(), auth));
 
@@ -115,6 +117,7 @@ async fn main() -> Result<(), DbErr> {
         .nest("/api/index", index_routes)
         .nest("/api/user", user_routes)
         .nest("/api/utils", utils_routes)
+        .nest("/api/file", file_routes)
         .route("/api/user/reset", get(get_reset))
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))

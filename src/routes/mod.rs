@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod file;
 pub mod index;
 pub mod middlewares;
 pub mod user;
@@ -67,6 +68,10 @@ pub struct ApiResponse<T> {
         (
             name = "utils",
             description = "Getting server status, item/category id-name map"
+        ),
+        (
+            name = "file",
+            description = "all the routes related to file fetching."
         )
     ),
     paths(
@@ -91,6 +96,7 @@ pub struct ApiResponse<T> {
         utils::get_status,
         utils::post_status,
         utils::get_tags,
+        file::get_page,
     ),
     components(schemas(
         CategoriesResponse,
