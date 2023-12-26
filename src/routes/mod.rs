@@ -1,14 +1,12 @@
 pub mod auth;
 pub mod index;
 pub mod middlewares;
-pub mod pages;
 pub mod user;
 pub mod utils;
 
 pub use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest},
     index::{CategoriesResponseBody, FilterRequest, FilterResponseBody, TitleResponseBody},
-    pages::{PageResponseBody, PagesResponseBody},
     user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
     utils::{StatusRequest, StatusResponseBody, TagsMapResponseBody},
 };
@@ -35,8 +33,6 @@ pub struct ErrorResponseBody {
     ErrorResponse = ApiResponse<ErrorResponseBody>,
     FilterResponse = ApiResponse<FilterResponseBody>,
     LoginResponse = ApiResponse<LoginResponseBody>,
-    PageResponse = ApiResponse<PageResponseBody>,
-    PagesResponse = ApiResponse<PagesResponseBody>,
     StatusResponse = ApiResponse<StatusResponseBody>,
     TagsMapResponse = ApiResponse<TagsMapResponseBody>,
     TitleResponse = ApiResponse<TitleResponseBody>,
@@ -111,10 +107,6 @@ pub struct ApiResponse<T> {
         LoginResponseBody,
         ModifyRequestBody,
         Page,
-        PageResponse,
-        PageResponseBody,
-        PagesResponse,
-        PagesResponseBody,
         RegisterRequest,
         ResetRequestBody,
         StatusRequest,

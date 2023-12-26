@@ -11,7 +11,6 @@ use axum::{
 use routes::{
     auth::{get_logout, post_login, post_register},
     index::{get_categories, get_title, post_filter},
-    pages::{get_page, get_pages, get_pages_by_title_id},
     user::{
         delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
         post_delete, post_modify, post_reset, post_verify, put_bookmark, put_favorite,
@@ -108,16 +107,12 @@ async fn main() -> Result<(), DbErr> {
         .route("/title/:title_id", get(get_title))
         .layer(apply(app_state.clone(), auth));
 
-    let pages_routes = Router::new()
-        .route("/pages", get(get_pages))
         .route("/page/:page_id", get(get_page))
-        .route("/pages/by_title_id/:title_id", get(get_pages_by_title_id))
         .layer(apply(app_state.clone(), auth));
 
     let app = Router::new()
         .nest("/api/auth", auth_routes)
         .nest("/api/index", index_routes)
-        .nest("/api/pages", pages_routes)
         .nest("/api/user", user_routes)
         .nest("/api/utils", utils_routes)
         .route("/api/user/reset", get(get_reset))
