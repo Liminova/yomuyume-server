@@ -22,6 +22,7 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(Users::CreatedAt).date_time().not_null())
             .col(ColumnDef::new(Users::UpdatedAt).date_time().not_null())
             .col(ColumnDef::new(Users::Password).string().not_null())
+            .col(ColumnDef::new(Users::IsVerified).boolean().not_null())
             .to_owned();
         manager.create_table(table).await
     }
@@ -42,4 +43,5 @@ pub enum Users {
     CreatedAt,
     UpdatedAt,
     Password,
+    IsVerified,
 }
