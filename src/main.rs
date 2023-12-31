@@ -10,7 +10,7 @@ use axum::{
 };
 use routes::{
     auth::{get_logout, post_login, post_register},
-    file::get_page,
+    file::{get_page, get_thumbnail},
     index::{get_categories, get_title, post_filter},
     user::{
         delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
@@ -110,6 +110,7 @@ async fn main() -> Result<(), DbErr> {
 
     let file_routes = Router::new()
         .route("/page/:page_id", get(get_page))
+        .route("/thumbnail/:thumbnail_id", get(get_thumbnail))
         .layer(apply(app_state.clone(), auth));
 
     let app = Router::new()
