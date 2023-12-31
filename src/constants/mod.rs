@@ -11,5 +11,5 @@ pub fn extended_img_formats<'a>() -> Vec<&'a str> {
 }
 
 pub fn native_img_formats<'a>() -> Vec<&'a str> {
-    vec!["png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif"]
+    vec!["png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif", "webp"]
 }
