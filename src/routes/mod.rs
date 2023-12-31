@@ -7,7 +7,10 @@ pub mod utils;
 
 pub use self::{
     auth::{LoginRequest, LoginResponseBody, RegisterRequest},
-    index::{CategoriesResponseBody, FilterRequest, FilterResponseBody, TitleResponseBody},
+    index::{
+        CategoriesResponseBody, FilterRequest, FilterResponseBody, FilterTitleResponseBody,
+        TitleResponseBody,
+    },
     user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
     utils::{StatusRequest, StatusResponseBody, TagsMapResponseBody},
 };
@@ -97,6 +100,7 @@ pub struct ApiResponse<T> {
         utils::post_status,
         utils::get_tags,
         file::get_page,
+        file::get_thumbnail,
     ),
     components(schemas(
         CategoriesResponse,
@@ -108,6 +112,7 @@ pub struct ApiResponse<T> {
         FilterRequest,
         FilterResponse,
         FilterResponseBody,
+        FilterTitleResponseBody,
         LoginRequest,
         LoginResponse,
         LoginResponseBody,

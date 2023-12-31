@@ -22,12 +22,12 @@ pub struct ResponsePage {
     pub blurhash: String,
     pub width: u32,
     pub height: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 
 #[derive(Serialize, ToSchema, Debug)]
 pub struct ResponseThumbnail {
-    pub id: String,
     pub hash: String,
     pub width: u32,
     pub height: u32,
@@ -105,7 +105,9 @@ pub async fn get_title(
             )
         })?;
 
-    let pages = Pages::find_by_id(&title.id)
+    let pages = Pages::find()
+        .filter(pages::Column::TitleId.eq(&title.id))
+        .order_by_asc(pages::Column::Path)
         .all(&data.db)
         .await
         .map_err(|e| {
@@ -115,6 +117,8 @@ pub async fn get_title(
                 format!("Database error: {}", e),
             )
         })?;
+
+    // sort pages by page.path
 
     let is_favorite = Favorites::find()
         .filter(
@@ -133,7 +137,7 @@ pub async fn get_title(
         })?
         .map(|_| true);
 
-    let is_bookmark = Users::find()
+    let is_bookmark = Bookmarks::find()
         .filter(
             Condition::all()
                 .add(bookmarks::Column::UserId.eq(&user.id))
@@ -147,8 +151,9 @@ pub async fn get_title(
                 String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
-        })?
-        .map(|_| true);
+        })
+        .map(|_| true)
+        .ok();
 
     let page_read = Progresses::find()
         .filter(
@@ -204,7 +209,6 @@ pub async fn get_title(
         description: title.description,
         release_date: title.release_date,
         thumbnail: ResponseThumbnail {
-            id: thumbnail.id,
             hash: thumbnail.blurhash,
             width: thumbnail.width,
             height: thumbnail.height,

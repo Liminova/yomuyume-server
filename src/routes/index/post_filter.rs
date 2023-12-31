@@ -19,6 +19,9 @@ pub struct FilterRequest {
     tag_ids: Option<Vec<i32>>,
     /// Maximum number of results to return
     limit: Option<u32>,
+
+    is_reading: Option<bool>,
+    is_finished: Option<bool>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -31,6 +34,10 @@ pub struct FilterTitleResponseBody {
     favorite_count: Option<u32>,
     page_count: u32,
     page_read: Option<u32>,
+    /// Thumbnail
+    blurhash: String,
+    width: u32,
+    height: u32,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -101,6 +108,46 @@ pub async fn post_filter(
         }
     }
 
+    if let Some(is_reading) = query.is_reading {
+        if is_reading {
+            let progress_model = Progresses::find()
+                .filter(progresses::Column::UserId.eq(&user.id))
+                .filter(progresses::Column::Page.gt(0))
+                .all(&data.db)
+                .await
+                .map_err(|e| {
+                    build_err_resp(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("An internal server error has occurred."),
+                        format!("Database error: {}", e),
+                    )
+                })?;
+            for entity in progress_model {
+                condition = condition.add(titles::Column::Id.eq(entity.title_id));
+            }
+        }
+    }
+
+    if let Some(is_finished) = query.is_finished {
+        if is_finished {
+            let progress_model = Progresses::find()
+                .filter(progresses::Column::UserId.eq(&user.id))
+                .filter(progresses::Column::Page.eq(0))
+                .all(&data.db)
+                .await
+                .map_err(|e| {
+                    build_err_resp(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("An internal server error has occurred."),
+                        format!("Database error: {}", e),
+                    )
+                })?;
+            for entity in progress_model {
+                condition = condition.add(titles::Column::Id.eq(entity.title_id));
+            }
+        }
+    }
+
     let found_titles = Titles::find()
         .apply_if(limit.map(|limit| limit as u64), QuerySelect::limit)
         .filter(condition)
@@ -120,6 +167,23 @@ pub async fn post_filter(
         let page_count = find_page_count(&data.db, &title.id).await;
         let favorite_count = find_favorite_count(&data.db, &title.id).await;
         let page_read = find_page_read(&data.db, &title.id, &user.id).await;
+        let thumbnail_model = Thumbnails::find_by_id(&title.id)
+            .one(&data.db)
+            .await
+            .map_err(|e| {
+                build_err_resp(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    String::from("An internal server error has occurred."),
+                    format!("Database error: {}", e),
+                )
+            })?
+            .ok_or_else(|| {
+                build_err_resp(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    String::from("An internal server error has occurred."),
+                    String::from("Thumbnail not found."),
+                )
+            })?;
         resp_data.push(FilterTitleResponseBody {
             id: title.id,
             title: title.title,
@@ -129,6 +193,9 @@ pub async fn post_filter(
             favorite_count,
             page_count,
             page_read,
+            blurhash: thumbnail_model.blurhash,
+            width: thumbnail_model.width,
+            height: thumbnail_model.height,
         });
     }
 

@@ -21,7 +21,7 @@ pub struct RegisterRequest {
 
 /// Register a new user.
 #[utoipa::path(post, path = "/api/auth/register", responses(
-    (status = 200, description = "Registration successful.", body = RegisterResponse),
+    (status = 200, description = "Registration successful."),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
     (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
 ))]
@@ -81,6 +81,7 @@ pub async fn post_register(
         created_at: Set(created_at.clone()),
         updated_at: Set(created_at),
         password: Set(hashed_password),
+        is_verified: Set(false),
         ..Default::default()
     };
 
