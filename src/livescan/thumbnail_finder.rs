@@ -193,7 +193,7 @@ impl TitleThumbnailFinder<'_> {
         self.valid_pages = self
             .blurhash_pages
             .iter()
-            .map(|page| page.filename.clone())
+            .map(|page| page.file_name.clone())
             .collect();
 
         let found_page = self
@@ -206,7 +206,7 @@ impl TitleThumbnailFinder<'_> {
             return self
                 .blurhash_pages
                 .iter()
-                .find(|page| page.filename == found_page)
+                .find(|page| page.file_name == found_page)
                 .cloned();
         }
         self.blurhash_pages.first().cloned()

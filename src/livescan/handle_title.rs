@@ -28,25 +28,18 @@ impl Scanner {
         info!("✅ found title: {}", title.path.to_string_lossy());
 
         /* #region - read <title>.toml */
-        let mut title_metadata_path = title.path.clone();
-        title_metadata_path.set_extension("toml");
-        let mut title_metadata = TitleMetadata::from_file(&title_metadata_path).await;
-        info!("- title (in metadata): {:?}", &title_metadata.title);
-        info!("- description: {:?}", &title_metadata.description);
-        info!("- thumbnail (in metadata): {:?}", &title_metadata.thumbnail);
-        info!("- author: {:?}", &title_metadata.author);
-        info!("- release_date: {:?}", &title_metadata.release_date);
-        info!(
-            "- tags count: {:?}",
-            &title_metadata.tags.as_ref().map(|t| t.len())
-        );
-        info!(
-            "- page description count: {:?}",
-            &title_metadata.descriptions.as_ref().map(|d| d.len())
-        );
+        let mut title_metadata = TitleMetadata::from(&{
+            let mut title_metadata_path = title.path.clone();
+            title_metadata_path.set_extension("toml");
+            title_metadata_path
+        })
+        .await;
+
+        debug!("metadata | [title] {:?} [desc] {:?} [thumb] {:?} [author] {:?} [release_date] {:?} [tags] {:?}",
+            &title_metadata.title, &title_metadata.description, &title_metadata.thumbnail, &title_metadata.author, &title_metadata.release_date, &title_metadata.tags);
         /* #endregion */
 
-        /* #region - title defined in <title>.toml ? use it : use title file_stem */
+        /* #region - title's name defined in <title>.toml ? use it : use title file_stem */
         let title_name = match title_metadata.title.clone() {
             Some(title) => title,
             None => title
@@ -59,60 +52,88 @@ impl Scanner {
                 .to_string_lossy()
                 .to_string(),
         };
-        info!("- title (will use): {:?}", &title_name);
+        debug!("title | {:?}", &title_name);
         /* #endregion */
 
-        /* #region - check if title exist + gen uuid */
-        let current_title_hash = Self::hash(&title.path).await.map_err(|e| {
+        /* #region - check if title exist; gen uuid if needed; handle metadata changes */
+        let title_hash_current = Self::hash(&title.path).await.map_err(|e| {
             error!("error hashing: {}", e);
             e
         })?;
         let mut title_path_exist_in_db = false;
         let mut title_id = String::new();
 
-        // By path -> hash change ? re-encode pages : update metadata -> return
+        // By path -> hash change ? by hash : update metadata -> return
         match Titles::find()
             .filter(titles::Column::Path.eq(title.path_lossy()))
             .one(&self.app_state.db)
             .await
         {
-            Ok(Some(found_title_in_db)) => {
+            Ok(Some(title_model)) => {
                 title_path_exist_in_db = true;
+                title_id = title_model.id.clone();
 
-                let old_title_hash = found_title_in_db.hash.clone();
-                title_id = found_title_in_db.id.clone();
+                tracing::debug!("hash in db: {}", title_model.hash);
+                tracing::debug!("hash current: {}", title_hash_current);
 
-                // Update title metadata nonetheless
-                let mut active_title: titles::ActiveModel = found_title_in_db.into();
-                active_title.title = Set(title_name.clone());
-                active_title.category_id = Set(category_id.clone());
-                active_title.description = Set(title_metadata.description.clone());
-                active_title.author = Set(title_metadata.author.clone());
-                active_title.release_date = Set(title_metadata.release_date.clone());
-                active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
-
-                // Hash changes -> re-encode pages
-                let need_reencode = old_title_hash != current_title_hash;
-                if need_reencode {
-                    active_title.hash = Set(current_title_hash.clone());
+                /* #region - update fields if metadata changed */
+                let mut need_update = false;
+                let mut active_title: titles::ActiveModel = Titles::find_by_id(&title_model.id)
+                    .one(&self.app_state.db)
+                    .await
+                    .map_err(|e| {
+                        error!("error search title in DB: {}", e);
+                        e
+                    })?
+                    .ok_or_else(|| {
+                        let err_msg = "error search title in DB, this should not happend";
+                        error!("{}", err_msg);
+                        err_msg
+                    })?
+                    .into();
+                if title_model.title != title_name {
+                    need_update = true;
+                    active_title.title = Set(title_name.clone());
+                }
+                if title_model.category_id != category_id {
+                    need_update = true;
+                    active_title.category_id = Set(category_id.clone());
+                }
+                if title_model.description != title_metadata.description {
+                    need_update = true;
+                    active_title.description = Set(title_metadata.description.clone());
+                }
+                if title_model.author != title_metadata.author {
+                    need_update = true;
+                    active_title.author = Set(title_metadata.author.clone());
+                }
+                if title_model.release_date != title_metadata.release_date {
+                    need_update = true;
+                    active_title.release_date = Set(title_metadata.release_date.clone());
+                }
+                if title_model.hash != title_hash_current {
+                    need_update = true;
                     active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
                 }
-                let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
-                    error!("error update metadata in DB: {}", e);
-                    e
-                })?;
+                if need_update {
+                    let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
+                        error!("error update metadata in DB: {}", e);
+                        e
+                    })?;
+                }
+                /* #endregion */
 
-                // Thumbnail field in metadata != in DB -> re-encode thumbnail
-                let thumbnail_in_db = Thumbnails::find()
+                /* #region - update thumbnail if metadata changed */
+                let thumbnail_path_in_db = Thumbnails::find()
                     .filter(thumbnails::Column::Id.eq(&title_id))
                     .one(&self.app_state.db)
                     .await
                     .map_err(|e| {
                         error!("error search thumbnail in DB: {}", e);
                         e
-                    })?;
-                let thumbnail_in_db = thumbnail_in_db.map(|t| t.path);
-                if thumbnail_in_db != title_metadata.thumbnail {
+                    })?
+                    .map(|t| t.path);
+                if thumbnail_path_in_db != title_metadata.thumbnail {
                     info!("thumbnail in DB != in metadata, re-encoding");
                     let _ = Thumbnails::delete_many()
                         .filter(thumbnails::Column::Id.eq(&title_id))
@@ -138,10 +159,10 @@ impl Scanner {
                         err_msg
                     })?;
                     // write BHResult -> <title>.toml and DB
-                    title_metadata.set_thumbnail(thumbnail.filename.clone());
+                    title_metadata.set_thumbnail(thumbnail.file_name.clone());
                     let _ = thumbnails::ActiveModel {
                         id: Set(title_id.clone()),
-                        path: Set(thumbnail.filename),
+                        path: Set(thumbnail.file_name),
                         blurhash: Set(thumbnail.blurhash),
                         width: Set(thumbnail.width),
                         height: Set(thumbnail.height),
@@ -153,8 +174,31 @@ impl Scanner {
                         e
                     })?;
                 }
+                /* #endregion */
 
-                if !need_reencode {
+                /* #region - update pages' descs if metadata changed */
+                let page_models = Pages::find()
+                    .filter(pages::Column::TitleId.eq(&title_id))
+                    .all(&self.app_state.db)
+                    .await
+                    .map_err(|e| {
+                        error!("error search pages in DB: {}", e);
+                        e
+                    })?;
+                for page in page_models {
+                    let page_desc_metadata = title_metadata.get_page_desc(page.path.clone());
+                    if page.description != page_desc_metadata {
+                        let mut active_page: pages::ActiveModel = page.into();
+                        active_page.description = Set(page_desc_metadata);
+                        let _ = active_page.update(&self.app_state.db).await.map_err(|e| {
+                            error!("error update page in DB: {}", e);
+                            e
+                        })?;
+                    }
+                }
+                /* #endregion */
+
+                if title_model.hash == title_hash_current {
                     info!("found in DB by path, hash match, skipping");
                     return Ok(());
                 }
@@ -172,7 +216,7 @@ impl Scanner {
         // By hash -> found match ? update metadata to match : encode -> return
         // Found match means nothing in the title.zip changed, so we can skip encoding pages
         match Titles::find()
-            .filter(titles::Column::Hash.eq(&current_title_hash))
+            .filter(titles::Column::Hash.eq(&title_hash_current))
             .one(&self.app_state.db)
             .await
         {
@@ -204,7 +248,7 @@ impl Scanner {
         }
         /* #endregion */
 
-        /* #region - create title in DB if find by hash + path failed */
+        /* #region - create if title is new, else update hash */
         if !title_path_exist_in_db {
             title_id = Uuid::new_v4().to_string();
             let now = chrono::Utc::now().timestamp().to_string();
@@ -216,7 +260,7 @@ impl Scanner {
                 author: Set(title_metadata.author.clone()),
                 release_date: Set(title_metadata.release_date.clone()),
                 path: Set(title.path_lossy()),
-                hash: Set(current_title_hash),
+                hash: Set(title_hash_current),
                 date_added: Set(now.clone()),
                 date_updated: Set(now),
             }
@@ -224,6 +268,27 @@ impl Scanner {
             .await
             .map_err(|e| {
                 error!("error inserting title to DB: {}", e);
+                e
+            })?;
+        } else {
+            let active_title = Titles::find_by_id(&title_id)
+                .one(&self.app_state.db)
+                .await
+                .map_err(|e| {
+                    error!("error search title in DB: {}", e);
+                    e
+                })?
+                .ok_or_else(|| {
+                    let err_msg = "error search title in DB, this should not happend";
+                    error!("{}", err_msg);
+                    err_msg
+                })?;
+
+            let mut active_title: titles::ActiveModel = active_title.into();
+            active_title.hash = Set(title_hash_current);
+
+            let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
+                error!("error update hash in DB: {}", e);
                 e
             })?;
         }
@@ -254,100 +319,170 @@ impl Scanner {
         /* #endregion */
 
         /* #region - tags */
-        let _ = tags::ActiveModel {
-            id: NotSet,
-            name: Set(title.name.clone()),
+        if let Some(tags) = title_metadata.tags.clone() {
+            for tag in tags {
+                // Get the tag_id
+                let tag_id = {
+                    // find the tag_name in DB first
+                    let tag_in_db = tags::Entity::find()
+                        .filter(tags::Column::Name.eq(&tag))
+                        .one(&self.app_state.db)
+                        .await
+                        .map_err(|e| {
+                            error!("error finding tag: {}", e);
+                            e
+                        })?;
+
+                    // if found, get the id
+                    if let Some(tag) = tag_in_db {
+                        tag.id
+                    } else {
+                        // else, insert the tag_name to DB, get the id
+                        let _ = tags::ActiveModel {
+                            id: NotSet,
+                            name: Set(tag.clone()),
+                        }
+                        .insert(&self.app_state.db)
+                        .await
+                        .map_err(|e| {
+                            error!("error inserting tag: {}", e);
+                            e
+                        })?;
+                        tags::Entity::find()
+                            .filter(tags::Column::Name.eq(&tag))
+                            .one(&self.app_state.db)
+                            .await
+                            .map_err(|e| {
+                                error!("error finding tag: {}", e);
+                                e
+                            })?
+                            .ok_or_else(|| {
+                                let err_msg = "error finding tag, this should not happend";
+                                error!("{}", err_msg);
+                                err_msg
+                            })?
+                            .id
+                    }
+                };
+
+                // Insert the title_id and tag_id to titles_tags
+                let _ = titles_tags::ActiveModel {
+                    id: NotSet,
+                    title_id: Set(title_id.clone()),
+                    tag_id: Set(tag_id),
+                }
+                .insert(&self.app_state.db)
+                .await
+                .map_err(|e| {
+                    error!("error inserting titles_tags: {}", e);
+                    e
+                })?;
+            }
         }
-        .insert(&self.app_state.db)
-        .await
-        .map_err(|e| {
-            error!("error inserting tag: {}", e);
-            e
-        })?;
-        let tag_id = tags::Entity::find()
-            .filter(tags::Column::Name.eq(&title.name))
-            .one(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error finding tag: {}", e);
-                e
-            })?
-            .ok_or_else(|| {
-                let err_msg = "error finding tag";
-                error!("{}", err_msg);
-                err_msg
-            })?
-            .id;
-        let _ = titles_tags::ActiveModel {
-            id: NotSet,
-            title_id: Set(title_id.clone()),
-            tag_id: Set(tag_id),
-        }
-        .insert(&self.app_state.db)
-        .await
-        .map_err(|e| {
-            error!("error inserting titles_tags: {}", e);
-            e
-        })?;
         /* #endregion */
 
-        /* #region - process pages */
-        let raw_pages = scan_extracted(&title_temp_dir, &self.image_formats).await;
-
+        /* #region - encode pages to blurhashes */
         #[cfg(debug_assertions)]
-        let start_blurhash_encode = std::time::Instant::now();
+        let start_timer = std::time::Instant::now();
 
-        let blurhashes: Vec<BlurhashResult> = raw_pages
-            .par_iter()
-            .filter_map(|page| self.blurhash.encode(&page.path, &page.ext))
-            .collect();
+        let page_blurhashes: Vec<BlurhashResult> =
+            scan_extracted(&title_temp_dir, &self.image_formats)
+                .await
+                .par_iter()
+                .filter_map(|page| self.blurhash.encode(&page.path, &page.ext))
+                .collect();
 
         #[cfg(debug_assertions)]
         {
-            let elapsed = start_blurhash_encode.elapsed();
-            let average = elapsed / blurhashes.len() as u32;
+            let total_time = start_timer.elapsed().as_secs_f64();
+            let time_per_page = total_time / page_blurhashes.len() as f64;
             debug!(
-                "blurhash encode: {} pages, elapsed: {:?}, average: {:?}",
-                blurhashes.len(),
-                elapsed,
-                average
+                "encode pages to blurhashes | total time: {:.2}s | time per page: {:.2}s",
+                total_time, time_per_page
             );
-        };
+        }
         /* #endregion */
 
         /* #region - clear old, push new page to DB */
-        let deleted = Pages::delete_many()
+
+        // Key: BHResult.file_name, Value: BHResult
+        let page_blurhashes_map = page_blurhashes
+            .iter()
+            .map(|page| (page.file_name.clone(), page.clone()))
+            .collect::<std::collections::HashMap<String, BlurhashResult>>();
+
+        // Key: page_model.path, Value: page_model.id
+        let page_models_map = Pages::find()
             .filter(pages::Column::TitleId.eq(&title_id))
-            .exec(&self.app_state.db)
+            .all(&self.app_state.db)
             .await
             .map_err(|e| {
-                error!("error deleting old pages: {}", e);
+                error!("error search pages in DB: {}", e);
                 e
-            })?;
+            })?
+            .into_iter()
+            .map(|page| (page.path.clone(), page.id.clone()))
+            .collect::<std::collections::HashMap<String, String>>();
 
-        debug!("deleted {} pages", deleted.rows_affected);
-
-        let mut active_pages = Vec::new();
-        for blurhash in &blurhashes {
-            let blurhash = blurhash.clone();
-            let active_page = pages::ActiveModel {
-                id: Set(Uuid::new_v4().to_string()),
-                title_id: Set(title_id.clone()),
-                path: Set(blurhash.filename.clone()),
-                blurhash: Set(blurhash.blurhash),
-                width: Set(blurhash.width),
-                height: Set(blurhash.height),
-                description: Set(title_metadata.get_page_desc(blurhash.filename)),
-            };
-            active_pages.push(active_page);
+        // For each `path` in `page_models_map`:
+        // - If `path` is not in `page_blurhashes_map`, delete it from the database.
+        for (path, page_id) in &page_models_map {
+            if !page_blurhashes_map.contains_key(path) {
+                let _ = Pages::delete_by_id(page_id)
+                    .exec(&self.app_state.db)
+                    .await
+                    .map_err(|e| {
+                        error!("error deleting old pages: {}", e);
+                        e
+                    })?;
+            }
         }
-        let _ = Pages::insert_many(active_pages)
-            .exec(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error inserting pages: {}", e);
-                e
-            })?;
+
+        // For each `path` in `page_blurhashes_map`:
+        // - If `path` is not in `page_models_map`, insert it into the database.
+        // - If `path` is in `page_models_map`, update it in the database.
+        for (path, blurhash) in &page_blurhashes_map {
+            if !page_models_map.contains_key(path) {
+                let _ = pages::ActiveModel {
+                    id: Set(Uuid::new_v4().to_string()),
+                    title_id: Set(title_id.clone()),
+                    path: Set(blurhash.file_name.clone()),
+                    blurhash: Set(blurhash.blurhash.clone()),
+                    width: Set(blurhash.width),
+                    height: Set(blurhash.height),
+                    description: Set(title_metadata.get_page_desc(blurhash.file_name.clone())),
+                }
+                .insert(&self.app_state.db)
+                .await
+                .map_err(|e| {
+                    error!("error inserting pages: {}", e);
+                    e
+                })?;
+            } else {
+                let page_model = Pages::find_by_id(page_models_map.get(path).unwrap())
+                    .one(&self.app_state.db)
+                    .await
+                    .map_err(|e| {
+                        error!("error finding page: {}", e);
+                        e
+                    })?
+                    .ok_or_else(|| {
+                        let err_msg = "error finding page, this should not happend";
+                        error!("{}", err_msg);
+                        err_msg
+                    })?;
+                if page_model.blurhash != blurhash.blurhash {
+                    let mut active_page: pages::ActiveModel = page_model.into();
+                    active_page.blurhash = Set(blurhash.blurhash.clone());
+                    active_page.width = Set(blurhash.width);
+                    active_page.height = Set(blurhash.height);
+                    let _ = active_page.update(&self.app_state.db).await.map_err(|e| {
+                        error!("error update page in DB: {}", e);
+                        e
+                    })?;
+                }
+            }
+        }
         /* #endregion */
 
         /* #region - title thumbnail */
@@ -368,22 +503,22 @@ impl Scanner {
             name
         };
         let mut thumbnail_finder = TitleThumbnailFinder {
-            blurhash_pages: &blurhashes,
+            blurhash_pages: &page_blurhashes,
             explicit_name: &title_metadata.thumbnail,
             implicit_names: &possible_thumbnail_name,
             formats: &self.image_formats,
             valid_pages: vec![],
         };
         if let Some(thumbnail) = thumbnail_finder.find() {
-            info!("- thumbnail found: {}", thumbnail.filename);
+            info!("- thumbnail found: {}", thumbnail.file_name);
 
             // write BHResult (filename) -> <title>.toml
-            title_metadata.set_thumbnail(thumbnail.filename.clone());
+            title_metadata.set_thumbnail(thumbnail.file_name.clone());
 
             // write BHResult (everything) -> DB
             let _ = thumbnails::ActiveModel {
                 id: Set(title_id),
-                path: Set(thumbnail.filename),
+                path: Set(thumbnail.file_name),
                 blurhash: Set(thumbnail.blurhash),
                 width: Set(thumbnail.width),
                 height: Set(thumbnail.height),

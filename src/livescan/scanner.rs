@@ -1,5 +1,4 @@
 use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter};
-use tracing::debug;
 
 use super::{
     scan_library::{scan_library, ScannedCategory},
@@ -46,31 +45,26 @@ impl Scanner {
             category_ids.push(self.handle_category(category).await?);
         }
 
-        debug!("Category IDs: {:?}", category_ids);
-
-        let category_ids_in_db = Categories::find()
-            .all(&self.app_state.db)
-            .await?
-            .into_iter()
-            .map(|c| c.id)
-            .collect::<Vec<String>>();
-
-        let category_ids_to_delete = category_ids_in_db
-            .into_iter()
-            .filter(|id| !category_ids.contains(id))
-            .collect::<Vec<String>>();
-
-        let mut condition = Condition::any();
-        for id in &category_ids_to_delete {
-            condition = condition.add(categories::Column::Id.eq(id));
+        let mut condition = Condition::all();
+        for id in &category_ids {
+            condition = condition.add(categories::Column::Id.ne(id));
         }
-
-        debug!("Deleting categories: {:?}", category_ids_to_delete);
 
         let _ = Categories::delete_many()
             .filter(condition)
             .exec(&self.app_state.db)
             .await?;
+
+        let titles = Titles::find().all(&self.app_state.db).await?.into_iter();
+        for title in titles {
+            if !PathBuf::from(&title.path).exists() {
+                let _ = Titles::delete_by_id(&title.id)
+                    .exec(&self.app_state.db)
+                    .await?;
+            }
+        }
+
+        tracing::debug!("✅ finished scanning library");
 
         Ok(())
     }

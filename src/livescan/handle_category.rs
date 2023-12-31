@@ -19,32 +19,34 @@ impl Scanner {
         /* pre-cleanup to make sure there's no residual temp category */
         self.cleanup_temp_category(category);
 
-        /* #region read <possible_name>.toml */
-        let mut category_metadata = CategoryMetadata::from(&category.path).await;
-        info!("- name (in metadata): {:?}", &category_metadata.name);
-        info!("- description: {:?}", &category_metadata.description);
-        info!(
-            "- thumbnail (in metadata): {:?}",
-            &category_metadata.thumbnail
+        /* read <category_folder>.toml */
+        let mut category_metadata = CategoryMetadata::from(&{
+            let mut path = PathBuf::from(&category.path);
+            path.set_extension("toml");
+            debug!("metadata | [path] {:?}", &path);
+            path
+        })
+        .await;
+        debug!(
+            "metadata | [name] {:?} [description] {:?} [thumbnail] {:?}",
+            &category_metadata.name, &category_metadata.description, &category_metadata.thumbnail
         );
-        /* #endregion */
 
-        /* #region - category's id = metadata || generated */
+        /* generate ID if needed */
         let category_id = category_metadata.id.clone().map_or_else(
             || {
                 let id = Uuid::new_v4().to_string();
-                debug!("- id (generated): {}", &id);
+                category_metadata.set_id(id.clone());
+                debug!("id (generated) | {}", &id);
                 id
             },
             |id| {
-                debug!("- id (in metadata): {}", &id);
+                debug!("id (metadata) | {}", &id);
                 id
             },
         );
-        category_metadata.set_id(category_id.clone());
-        /* #endregion */
 
-        /* #region - category's name = folder name || metadata */
+        /* category's name = folder name || metadata */
         let category_name = match category_metadata.name {
             Some(name) => name,
             None => category
@@ -54,8 +56,7 @@ impl Scanner {
                 .to_string_lossy()
                 .to_string(),
         };
-        info!("- name (will use): {:?}", &category_name);
-        /* #endregion */
+        debug!("- name (will use): {:?}", &category_name);
 
         /* #region - insert/update category info to DB */
         let category_exist_in_db = categories::Entity::find_by_id(&category_id)
