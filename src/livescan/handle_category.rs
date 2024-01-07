@@ -1,7 +1,7 @@
 use super::{scan_library::ScannedCategory, Scanner};
 use crate::{
-    constants::thumbnail_filestem,
-    livescan::{scan_category::scan_category, thumbnail_finder::CategoryThumbnailFinder},
+    constants::thumbnail_filestems,
+    livescan::{scan_category::scan_category, thumbnail_finder::thumbnail_finder},
     models::{metadata::CategoryMetadata, prelude::*},
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -96,22 +96,17 @@ impl Scanner {
         /* #endregion */
 
         /* #region - find category thumbnail */
-        let mut implicit_thumbnail_names = thumbnail_filestem();
+        let mut implicit_thumbnail_names = thumbnail_filestems();
         implicit_thumbnail_names.push(&category.name);
         if let Some(thumbnail) = &category_metadata.thumbnail {
             implicit_thumbnail_names.push(thumbnail);
         }
-        let mut category_thumbnail_finder = CategoryThumbnailFinder {
-            parent_dir: &category.path,
-            explicit_name: &category_metadata.thumbnail,
-            implicit_names: &implicit_thumbnail_names,
-            formats: &self.image_formats,
-            blurhash: &self.blurhash,
-        };
+        let thumbnail =
+            thumbnail_finder(&category.path, &category_metadata.thumbnail, &self.blurhash);
         /* #endregion */
 
         /* #region - push thumbnail to DB if needed */
-        if let Some(thumbnail) = category_thumbnail_finder.find() {
+        if let Some(thumbnail) = thumbnail {
             info!("- thumbnail found: {}", thumbnail.1.to_string_lossy());
 
             // check if exists in DB by blurhash
@@ -128,7 +123,7 @@ impl Scanner {
             if let Some(thumbnail_in_db) = thumbnail_in_db {
                 debug!("thumbnail already exists in DB");
                 let mut active_thumbnail: thumbnails::ActiveModel = thumbnail_in_db.into();
-                active_thumbnail.path = Set(thumbnail.1.to_string_lossy().into_owned());
+                active_thumbnail.path = Set(thumbnail.1.to_string_lossy().to_string());
                 let _ = active_thumbnail
                     .update(&self.app_state.db)
                     .await
@@ -167,9 +162,7 @@ impl Scanner {
 
         /* handle titles */
         for title in scan_category(&category.path).await {
-            let _ = self
-                .handle_title(&title, category, category_id.clone())
-                .await;
+            let _ = self.handle_title(&title, category_id.clone()).await;
         }
 
         /* cleanup */
