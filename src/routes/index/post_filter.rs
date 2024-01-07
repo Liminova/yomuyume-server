@@ -4,7 +4,9 @@ use super::{
 };
 use crate::{models::prelude::*, AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
-use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, QuerySelect, QueryTrait};
+use sea_orm::{
+    ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::ToSchema;
@@ -22,6 +24,11 @@ pub struct FilterRequest {
 
     is_reading: Option<bool>,
     is_finished: Option<bool>,
+    is_bookmarked: Option<bool>,
+    is_favorite: Option<bool>,
+
+    sort_by: Option<String>,
+    sort_order: Option<String>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -110,7 +117,7 @@ pub async fn post_filter(
 
     if let Some(is_reading) = query.is_reading {
         if is_reading {
-            let progress_model = Progresses::find()
+            let progress_models = Progresses::find()
                 .filter(progresses::Column::UserId.eq(&user.id))
                 .filter(progresses::Column::Page.gt(0))
                 .all(&data.db)
@@ -122,7 +129,7 @@ pub async fn post_filter(
                         format!("Database error: {}", e),
                     )
                 })?;
-            for entity in progress_model {
+            for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
         }
@@ -130,7 +137,7 @@ pub async fn post_filter(
 
     if let Some(is_finished) = query.is_finished {
         if is_finished {
-            let progress_model = Progresses::find()
+            let progress_models = Progresses::find()
                 .filter(progresses::Column::UserId.eq(&user.id))
                 .filter(progresses::Column::Page.eq(0))
                 .all(&data.db)
@@ -142,15 +149,75 @@ pub async fn post_filter(
                         format!("Database error: {}", e),
                     )
                 })?;
-            for entity in progress_model {
+            for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
         }
     }
 
-    let found_titles = Titles::find()
+    if let Some(is_bookmarked) = query.is_bookmarked {
+        if is_bookmarked {
+            let bookmark_models = Bookmarks::find()
+                .filter(bookmarks::Column::UserId.eq(&user.id))
+                .all(&data.db)
+                .await
+                .map_err(|e| {
+                    build_err_resp(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("An internal server error has occurred."),
+                        format!("Database error: {}", e),
+                    )
+                })?;
+            for entity in bookmark_models {
+                condition = condition.add(titles::Column::Id.eq(entity.title_id));
+            }
+        }
+    }
+
+    if let Some(is_favorite) = query.is_favorite {
+        if is_favorite {
+            let favorite_models = Favorites::find()
+                .filter(favorites::Column::UserId.eq(&user.id))
+                .all(&data.db)
+                .await
+                .map_err(|e| {
+                    build_err_resp(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("An internal server error has occurred."),
+                        format!("Database error: {}", e),
+                    )
+                })?;
+            for entity in favorite_models {
+                condition = condition.add(titles::Column::Id.eq(entity.title_id));
+            }
+        }
+    }
+
+    let sort_by = match &query.sort_by {
+        Some(sort_by) => match sort_by.as_str() {
+            "alphabetical" => titles::Column::Title,
+            "add date" => titles::Column::DateAdded,
+            "release date" => titles::Column::ReleaseDate,
+            "update date" => titles::Column::DateUpdated,
+            // "last read" => {},
+            _ => titles::Column::Title,
+        },
+        None => titles::Column::Title,
+    };
+
+    let sort_order = match &query.sort_order {
+        Some(sort_order) => match sort_order.as_str() {
+            "ascending" => Order::Asc,
+            "descending" => Order::Desc,
+            _ => Order::Asc,
+        },
+        None => Order::Asc,
+    };
+
+    let title_models = Titles::find()
         .apply_if(limit.map(|limit| limit as u64), QuerySelect::limit)
         .filter(condition)
+        .order_by(sort_by, sort_order)
         .all(&data.db)
         .await
         .map_err(|e| {
@@ -163,7 +230,7 @@ pub async fn post_filter(
 
     let mut resp_data: Vec<FilterTitleResponseBody> = vec![];
 
-    for title in found_titles {
+    for title in title_models {
         let page_count = find_page_count(&data.db, &title.id).await;
         let favorite_count = find_favorite_count(&data.db, &title.id).await;
         let page_read = find_page_read(&data.db, &title.id, &user.id).await;
