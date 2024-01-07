@@ -10,7 +10,6 @@ use std::{path::PathBuf, sync::Arc};
 pub struct Scanner {
     pub(super) app_state: Arc<AppState>,
     pub(super) temp_dir: PathBuf,
-    pub(super) image_formats: Vec<String>,
     pub(super) blurhash: Blurhash,
     pub(super) categories: Vec<ScannedCategory>,
 }
@@ -26,10 +25,6 @@ impl Scanner {
         Self {
             app_state,
             temp_dir,
-            image_formats: crate::constants::extended_img_formats()
-                .into_iter()
-                .map(|s| s.to_string())
-                .collect(),
             blurhash: Blurhash {
                 ffmpeg_path,
                 djxl_path,
