@@ -19,7 +19,6 @@ pub struct BlurhashResult {
     pub height: u32,
     /// This is the file's name, not the full path
     pub file_name: String,
-    pub file_path: PathBuf,
 }
 
 impl Blurhash {
@@ -64,8 +63,7 @@ impl Blurhash {
         let file_name = image_path
             .file_name()
             .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default()
+            .to_string_lossy()
             .to_string();
 
         Some(BlurhashResult {
@@ -73,7 +71,6 @@ impl Blurhash {
             width: original_width,
             height: original_height,
             file_name,
-            file_path: image_path.clone(),
         })
     }
 
