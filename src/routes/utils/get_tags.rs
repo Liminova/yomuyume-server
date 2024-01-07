@@ -15,7 +15,7 @@ pub struct TagsMapResponseBody {
     pub tags: Vec<(i32, String)>,
 }
 
-#[utoipa::path(get, path = "/api/tags", responses(
+#[utoipa::path(get, path = "/api/utils/tags", responses(
     (status = 200, description = "Tags map.", body = TagsMapResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
 ))]
