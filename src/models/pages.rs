@@ -10,9 +10,6 @@ pub struct Model {
     pub id: String,
     pub title_id: String,
     pub path: String,
-    pub blurhash: String,
-    pub width: u32,
-    pub height: u32,
     pub description: Option<String>,
 }
 

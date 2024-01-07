@@ -19,9 +19,6 @@ use uuid::Uuid;
 pub struct ResponsePage {
     pub id: String,
     pub title_id: String,
-    pub blurhash: String,
-    pub width: u32,
-    pub height: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
@@ -117,8 +114,6 @@ pub async fn get_title(
                 format!("Database error: {}", e),
             )
         })?;
-
-    // sort pages by page.path
 
     let is_favorite = Favorites::find()
         .filter(
@@ -219,9 +214,6 @@ pub async fn get_title(
             .map(|page| ResponsePage {
                 id: page.id,
                 title_id: page.title_id,
-                blurhash: page.blurhash,
-                width: page.width,
-                height: page.height,
                 description: page.description,
             })
             .collect::<Vec<_>>(),
