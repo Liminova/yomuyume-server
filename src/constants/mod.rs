@@ -1,15 +1,16 @@
 pub mod version;
 
-pub fn thumbnail_filestem<'a>() -> Vec<&'a str> {
+/// Filestem of thumbnail files used in thumbnail_finder.rs
+pub fn thumbnail_filestems<'a>() -> Vec<&'a str> {
     vec!["thumbnail", "cover", "_", "folder"]
-}
-
-pub fn extended_img_formats<'a>() -> Vec<&'a str> {
-    vec![
-        "jxl", "avif", "webp", "png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif",
-    ]
 }
 
 pub fn native_img_formats<'a>() -> Vec<&'a str> {
     vec!["png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif", "webp"]
+}
+
+pub fn extended_img_formats<'a>() -> Vec<&'a str> {
+    let mut formats = native_img_formats();
+    formats.extend(vec!["jxl", "avif"]);
+    formats
 }
