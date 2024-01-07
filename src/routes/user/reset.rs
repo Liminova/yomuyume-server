@@ -40,17 +40,12 @@ pub async fn get_reset(
     if data.env.smtp_host.is_none() {
         return Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
-            String::from("SMTP is not configured, please contact the server administrator."),
+            "SMTP is not configured, please contact the server administrator.",
         ));
     }
 
     if !email_address::EmailAddress::is_valid(&email) {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid email."),
-        ));
+        return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid email."));
     }
 
     let user = Users::find()
@@ -60,23 +55,15 @@ pub async fn get_reset(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Failed to fetch user from database. Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::CONFLICT,
-                String::from("A conflict has occurred."),
-                String::from("User not found."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::NOT_FOUND, "User not found."))?;
 
     if !user.is_verified {
         return Err(build_err_resp(
             StatusCode::CONFLICT,
-            String::from("A conflict has occurred."),
-            String::from("User is not verified."),
+            "User is not verified.",
         ));
     }
 
@@ -95,7 +82,6 @@ pub async fn get_reset(
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to generate token. JWT error: {}", e),
         )
     })?;
@@ -122,7 +108,6 @@ pub async fn get_reset(
         Ok(_) => Ok(StatusCode::OK),
         Err(e) => Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to send email. SMTP error: {}", e),
         )),
     }
@@ -145,16 +130,14 @@ pub async fn post_reset(
     if purpose != TokenClaimsPurpose::ResetPassword {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid request purpose."),
+            "Invalid request purpose.",
         ));
     }
 
     if query.password.is_empty() {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Password cannot be empty."),
+            "Password cannot be empty.",
         ));
     }
 
@@ -165,30 +148,19 @@ pub async fn post_reset(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Failed to fetch user from database. Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::BAD_REQUEST,
-                String::from("Server has received a bad request."),
-                String::from("Invalid user."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid user."))?;
 
-    let is_valid = match PasswordHash::new(&user.password) {
+    let password_valid = match PasswordHash::new(&user.password) {
         Ok(parsed_hash) => Argon2::default()
             .verify_password(query.password.as_bytes(), &parsed_hash)
             .map_or(false, |_| true),
         Err(_) => false,
     };
-    if !is_valid {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid password."),
-        ));
+    if !password_valid {
+        return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid password."));
     }
 
     let salt = SaltString::generate(&mut OsRng);
@@ -197,7 +169,6 @@ pub async fn post_reset(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Error while hashing password: {}", e),
             )
         })?
@@ -208,7 +179,6 @@ pub async fn post_reset(
     user.save(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to update user. Database error: {}", e),
         )
     })?;

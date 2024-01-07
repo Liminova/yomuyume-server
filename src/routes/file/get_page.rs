@@ -31,17 +31,10 @@ pub async fn get_page(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::NOT_FOUND,
-                String::from("Page not found."),
-                String::from("Page not found."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::NOT_FOUND, "Page not found."))?;
 
     let title_in_db = Titles::find()
         .filter(titles::Column::Id.contains(&page_in_db.title_id))
@@ -50,29 +43,20 @@ pub async fn get_page(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::NOT_FOUND,
-                String::from("Title not found."),
-                String::from("Title not found."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::NOT_FOUND, "Title not found."))?;
 
     let mut zip = ZipArchive::new(File::open(title_in_db.path).map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("File error: {}", e),
         )
     })?)
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Zip error: {}", e),
         )
     })?;
@@ -80,7 +64,6 @@ pub async fn get_page(
     let mut file = zip.by_name(page_in_db.path.as_ref()).map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Zip error: {}", e),
         )
     })?;
@@ -89,7 +72,6 @@ pub async fn get_page(
     file.read_to_end(&mut buffer).map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("File read error: {}", e),
         )
     })?;

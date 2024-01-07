@@ -46,23 +46,15 @@ pub async fn post_login(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::BAD_REQUEST,
-                String::from("Server has received a bad request."),
-                String::from("Invalid username or password."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid username or password."))?;
 
     if !check_pass(&user.password, &query.password) {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid username or password."),
+            "Invalid username or password.",
         ));
     }
 
@@ -84,7 +76,6 @@ pub async fn post_login(
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("JWT error: {}", e),
         )
     })?;

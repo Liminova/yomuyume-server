@@ -133,30 +133,27 @@ pub struct ApiResponse<T> {
 )]
 pub struct ApiDoc;
 
-fn build_resp<T: Serialize>(
-    status: StatusCode,
-    description: String,
-    body: T,
-) -> (StatusCode, Json<ApiResponse<T>>) {
+fn build_resp<T: Serialize>(status: StatusCode, body: T) -> (StatusCode, Json<ApiResponse<T>>) {
     (
         status,
         Json(ApiResponse {
-            description,
+            description: status.canonical_reason().unwrap_or_default().to_string(),
             body: Some(body),
         }),
     )
 }
 
-fn build_err_resp(
+fn build_err_resp<S: AsRef<str>>(
     status: StatusCode,
-    description: String,
-    body: String,
+    body: S,
 ) -> (StatusCode, Json<ApiResponse<ErrorResponseBody>>) {
     (
         status,
         Json(ApiResponse {
-            description,
-            body: Some(ErrorResponseBody { message: body }),
+            description: status.canonical_reason().unwrap_or_default().to_string(),
+            body: Some(ErrorResponseBody {
+                message: body.as_ref().to_string(),
+            }),
         }),
     )
 }

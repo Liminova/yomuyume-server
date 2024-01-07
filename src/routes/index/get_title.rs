@@ -72,17 +72,10 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::NO_CONTENT,
-                String::from("Bad request."),
-                String::from("No title found."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::NO_CONTENT, "No title found."))?;
 
     let thumbnail = Thumbnails::find_by_id(&title.id)
         .one(&data.db)
@@ -90,17 +83,10 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::NO_CONTENT,
-                String::from("Bad request."),
-                String::from("No thumbnail found."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::NO_CONTENT, "No thumbnail found."))?;
 
     let pages = Pages::find()
         .filter(pages::Column::TitleId.eq(&title.id))
@@ -110,7 +96,6 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?;
@@ -126,7 +111,6 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
@@ -143,7 +127,6 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })
@@ -161,7 +144,6 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
@@ -174,7 +156,6 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })? {
@@ -189,7 +170,6 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?
@@ -225,9 +205,5 @@ pub async fn get_title(
         date_updated: title.date_updated,
     };
 
-    Ok(build_resp(
-        StatusCode::OK,
-        String::from("Fetch title successful."),
-        title,
-    ))
+    Ok(build_resp(StatusCode::OK, title))
 }

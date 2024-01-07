@@ -22,13 +22,10 @@ pub struct TagsMapResponseBody {
 pub async fn get_tags(
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let tags = Tags::find().all(&data.db).await.map_err(|_| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
-            String::from("Failed to get tags."),
-        )
-    })?;
+    let tags = Tags::find()
+        .all(&data.db)
+        .await
+        .map_err(|_| build_err_resp(StatusCode::INTERNAL_SERVER_ERROR, "Failed to get tags."))?;
 
     let mut tag_map = Vec::new();
     for tag in tags {
@@ -38,15 +35,13 @@ pub async fn get_tags(
             .map_err(|_| {
                 build_err_resp(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("An internal server error has occurred."),
-                    String::from("Failed to get categories."),
+                    "Failed to get categories.",
                 )
             })?
             .ok_or_else(|| {
                 build_err_resp(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("An internal server error has occurred."),
-                    String::from("Failed to get categories."),
+                    "Failed to get categories.",
                 )
             })?;
         tag_map.push((tag.id, tag.name));
@@ -54,7 +49,6 @@ pub async fn get_tags(
 
     Ok(build_resp(
         StatusCode::OK,
-        String::from("Getting tags map succeeded."),
         TagsMapResponseBody { tags: tag_map },
     ))
 }

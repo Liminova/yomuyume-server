@@ -22,16 +22,14 @@ pub async fn get_verify(
     if user.is_verified {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("User is already verified."),
+            "User is already verified.",
         ));
     }
 
     if data.env.smtp_host.is_none() {
         return Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
-            String::from("SMTP is not configured, please contact the server administrator."),
+            "SMTP is not configured, please contact the server administrator.",
         ));
     }
 
@@ -50,7 +48,6 @@ pub async fn get_verify(
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to generate token. JWT error: {}", e),
         )
     })?;
@@ -76,7 +73,6 @@ pub async fn get_verify(
         Ok(_) => Ok(StatusCode::OK),
         Err(e) => Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to send email. SMTP error: {}", e),
         )),
     }
@@ -97,16 +93,14 @@ pub async fn post_verify(
     if user.is_verified {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("User is already verified."),
+            "User is already verified.",
         ));
     }
 
     if purpose != TokenClaimsPurpose::VerifyRegister {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid request purpose."),
+            "Invalid request purpose.",
         ));
     }
 
@@ -116,7 +110,6 @@ pub async fn post_verify(
     user.save(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to update user. Database error: {}", e),
         )
     })?;

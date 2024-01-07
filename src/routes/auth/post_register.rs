@@ -30,11 +30,7 @@ pub async fn post_register(
     query: Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     if !email_address::EmailAddress::is_valid(&query.email) {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid email."),
-        ));
+        return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid email."));
     }
 
     let email_exists = Users::find()
@@ -44,7 +40,6 @@ pub async fn post_register(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Failed to fetch user from database. Database error: {}", e),
             )
         })?;
@@ -52,8 +47,7 @@ pub async fn post_register(
     if email_exists.is_some() {
         return Err(build_err_resp(
             StatusCode::CONFLICT,
-            String::from("A conflict has occurred on the server."),
-            String::from("An user with this email already exists."),
+            "An user with this email already exists.",
         ));
     }
 
@@ -63,7 +57,6 @@ pub async fn post_register(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Error while hashing password: {}", e),
             )
         })
@@ -88,7 +81,6 @@ pub async fn post_register(
     user.insert(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to insert user into database. Database error: {}", e),
         )
     })?;

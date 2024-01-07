@@ -29,7 +29,6 @@ pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let version = get_version();
     build_resp(
         StatusCode::OK,
-        String::from("Status check successful."),
         Some(StatusResponseBody {
             server_time: Local::now(),
             version,
@@ -44,7 +43,6 @@ pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoRespons
     let version = get_version();
     build_resp(
         StatusCode::OK,
-        String::from("Status check successful."),
         Some(StatusResponseBody {
             server_time: Local::now(),
             version,

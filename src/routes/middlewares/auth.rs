@@ -40,8 +40,7 @@ pub async fn auth(
     let token = token.ok_or_else(|| {
         build_err_resp(
             StatusCode::UNAUTHORIZED,
-            String::from("You're not authorized."),
-            String::from("You're not logged in, please provide a token."),
+            "You're not logged in, please provide a token.",
         )
     })?;
 
@@ -50,22 +49,11 @@ pub async fn auth(
         &DecodingKey::from_secret(data.env.jwt_secret.as_ref()),
         &Validation::default(),
     )
-    .map_err(|_| {
-        build_err_resp(
-            StatusCode::UNAUTHORIZED,
-            String::from("You're not authorized."),
-            String::from("Invalid token."),
-        )
-    })?
+    .map_err(|_| build_err_resp(StatusCode::UNAUTHORIZED, "Invalid token."))?
     .claims;
 
-    let user_id = uuid::Uuid::parse_str(&claims.sub).map_err(|_| {
-        build_err_resp(
-            StatusCode::UNAUTHORIZED,
-            String::from("You're not authorized."),
-            String::from("Invalid token."),
-        )
-    })?;
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| build_err_resp(StatusCode::UNAUTHORIZED, "Invalid token."))?;
 
     let user: Option<users::Model> =
         Users::find_by_id(user_id)
@@ -74,7 +62,6 @@ pub async fn auth(
             .map_err(|e| {
                 build_err_resp(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("An internal server error has occurred."),
                     format!("Database error: {}", e),
                 )
             })?;
@@ -83,12 +70,10 @@ pub async fn auth(
         req.extensions_mut().insert(user);
         req.extensions_mut()
             .insert(claims.purpose.unwrap_or_default());
-        Ok(next.run(req).await)
-    } else {
-        Err(build_err_resp(
-            StatusCode::UNAUTHORIZED,
-            String::from("You're not authorized."),
-            String::from("The user belonging to this token no longer exists."),
-        ))
+        return Ok(next.run(req).await);
     }
+    Err(build_err_resp(
+        StatusCode::UNAUTHORIZED,
+        "The user belonging to this token no longer exists.",
+    ))
 }

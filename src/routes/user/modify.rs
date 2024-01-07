@@ -47,16 +47,11 @@ pub async fn post_modify(
         if !is_verified {
             return Err(build_err_resp(
                 StatusCode::UNAUTHORIZED,
-                String::from("Unauthorized."),
-                String::from("User is not verified, cannot change password."),
+                "User is not verified, cannot change password.",
             ));
         }
         if !check_pass(&password_in_db, &password) {
-            return Err(build_err_resp(
-                StatusCode::BAD_REQUEST,
-                String::from("Server has received a bad request."),
-                String::from("Invalid password."),
-            ));
+            return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid password."));
         }
     }
 
@@ -67,7 +62,6 @@ pub async fn post_modify(
     active_user.save(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to update user. Database error: {}", e),
         )
     })?;

@@ -33,8 +33,7 @@ pub async fn get_delete(
     if data.env.smtp_host.is_none() {
         return Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
-            String::from("SMTP is not configured, please contact the server administrator."),
+            "SMTP is not configured, please contact the server administrator.",
         ));
     }
 
@@ -53,7 +52,6 @@ pub async fn get_delete(
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to generate token. JWT error: {}", e),
         )
     })?;
@@ -80,7 +78,6 @@ pub async fn get_delete(
         Ok(_) => Ok(StatusCode::OK),
         Err(e) => Err(build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to send email. SMTP error: {}", e),
         )),
     }
@@ -102,16 +99,14 @@ pub async fn post_delete(
     if query.password.is_empty() {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Password cannot be empty."),
+            "Password cannot be empty.",
         ));
     }
 
     if !check_pass(&user.password, &query.password) {
         return Err(build_err_resp(
             StatusCode::BAD_REQUEST,
-            String::from("Server has received a bad request."),
-            String::from("Invalid username or password."),
+            "Invalid username or password.",
         ));
     }
 
@@ -122,24 +117,16 @@ pub async fn post_delete(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Failed to fetch user from database. Database error: {}", e),
             )
         })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::BAD_REQUEST,
-                String::from("Server has received a bad request."),
-                String::from("Invalid user."),
-            )
-        })?;
+        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid user."))?;
 
     let user: users::ActiveModel = user.into();
 
     user.delete(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Failed to delete user. Database error: {}", e),
         )
     })?;

@@ -23,7 +23,6 @@ pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })
@@ -47,7 +46,6 @@ pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &s
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })
@@ -67,7 +65,6 @@ pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Opt
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })

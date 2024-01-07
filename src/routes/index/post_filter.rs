@@ -73,7 +73,6 @@ pub async fn post_filter(
     if keywords.is_none() && category_ids.is_none() && tag_ids.is_none() {
         return Ok(build_resp(
             StatusCode::NO_CONTENT,
-            String::from("Fetching all items successful, but none were found."),
             Some(FilterResponseBody { data: vec![] }),
         ));
     }
@@ -104,7 +103,6 @@ pub async fn post_filter(
                 .map_err(|e| {
                     build_err_resp(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("An internal server error has occurred."),
                         format!("Database error: {}", e),
                     )
                 })?;
@@ -125,7 +123,6 @@ pub async fn post_filter(
                 .map_err(|e| {
                     build_err_resp(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("An internal server error has occurred."),
                         format!("Database error: {}", e),
                     )
                 })?;
@@ -145,7 +142,6 @@ pub async fn post_filter(
                 .map_err(|e| {
                     build_err_resp(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("An internal server error has occurred."),
                         format!("Database error: {}", e),
                     )
                 })?;
@@ -164,7 +160,6 @@ pub async fn post_filter(
                 .map_err(|e| {
                     build_err_resp(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("An internal server error has occurred."),
                         format!("Database error: {}", e),
                     )
                 })?;
@@ -183,7 +178,6 @@ pub async fn post_filter(
                 .map_err(|e| {
                     build_err_resp(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("An internal server error has occurred."),
                         format!("Database error: {}", e),
                     )
                 })?;
@@ -223,7 +217,6 @@ pub async fn post_filter(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("An internal server error has occurred."),
                 format!("Database error: {}", e),
             )
         })?;
@@ -240,14 +233,12 @@ pub async fn post_filter(
             .map_err(|e| {
                 build_err_resp(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("An internal server error has occurred."),
                     format!("Database error: {}", e),
                 )
             })?
             .ok_or_else(|| {
                 build_err_resp(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("An internal server error has occurred."),
                     String::from("Thumbnail not found."),
                 )
             })?;
@@ -269,14 +260,9 @@ pub async fn post_filter(
     let resp = match resp_data.is_empty() {
         true => build_resp(
             StatusCode::NO_CONTENT,
-            String::from("Fetching all items successful, but none were found."),
             Some(FilterResponseBody { data: vec![] }),
         ),
-        false => build_resp(
-            StatusCode::OK,
-            String::from("Fetching all items successful."),
-            Some(FilterResponseBody { data: resp_data }),
-        ),
+        false => build_resp(StatusCode::OK, Some(FilterResponseBody { data: resp_data })),
     };
 
     Ok(resp)

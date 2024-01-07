@@ -26,14 +26,12 @@ pub async fn get_categories(
     let categories = Categories::find().all(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            String::from("An internal server error has occurred."),
             format!("Database error: {}", e),
         )
     })?;
 
     Ok(build_resp(
         StatusCode::OK,
-        String::from("Fetching all categories successful."),
         Some(CategoriesResponseBody { data: categories }),
     ))
 }
