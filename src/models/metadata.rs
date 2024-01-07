@@ -98,7 +98,7 @@ impl TitleMetadata {
     }
 
     /// Return the description that matches the page filename
-    pub fn get_page_desc(&self, path: String) -> Option<String> {
+    pub fn get_page_desc(&self, path: &str) -> Option<String> {
         let path = PathBuf::from(path);
         let no_ext = path
             .file_stem()
