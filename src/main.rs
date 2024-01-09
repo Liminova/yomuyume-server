@@ -119,7 +119,7 @@ async fn main() -> Result<(), DbErr> {
         .nest("/api/user", user_routes)
         .nest("/api/utils", utils_routes)
         .nest("/api/file", file_routes)
-        .route("/api/user/reset", get(get_reset))
+        .route("/api/user/reset/:email", get(get_reset))
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
