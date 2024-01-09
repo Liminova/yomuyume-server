@@ -9,8 +9,7 @@ pub struct Model {
     pub id: String,
     pub path: String,
     pub blurhash: String,
-    pub width: u32,
-    pub height: u32,
+    pub ratio: u32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

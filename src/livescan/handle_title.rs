@@ -408,8 +408,7 @@ impl Scanner {
                 id: Set(title_id.to_string()),
                 path: Set(thumbnail.file_name),
                 blurhash: Set(thumbnail.blurhash),
-                width: Set(thumbnail.width),
-                height: Set(thumbnail.height),
+                ratio: Set(thumbnail.ratio),
             }
             .insert(&self.app_state.db)
             .await

@@ -1,4 +1,4 @@
-use crate::constants::native_img_formats;
+use crate::constants::{native_img_formats, ratio_percision};
 use blurhash::encode;
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 use std::path::PathBuf;
@@ -15,8 +15,7 @@ pub struct Blurhash {
 #[derive(Debug, Clone)]
 pub struct BlurhashResult {
     pub blurhash: String,
-    pub width: u32,
-    pub height: u32,
+    pub ratio: u32,
     /// This is the file's name, not the full path
     pub file_name: String,
 }
@@ -42,18 +41,13 @@ impl Blurhash {
     pub fn encode(&self, image_path: &PathBuf, format: &str) -> Option<BlurhashResult> {
         let input_img_path = image_path.to_str().unwrap_or_default();
 
-        let decoded_image = self.transcode(input_img_path, format)?;
-        let (original_width, original_height) = decoded_image.dimensions();
-
-        let decoded_image = decoded_image.resize(100, 100, Gaussian);
+        let decoded_image = self
+            .transcode(input_img_path, format)?
+            .resize(100, 100, Gaussian);
         let (width, height) = decoded_image.dimensions();
-        let (x, y) = {
-            if width < height {
-                (3, (3.0 * height as f32 / width as f32).round() as u32)
-            } else {
-                ((3.0 * width as f32 / height as f32).round() as u32, 3)
-            }
-        };
+
+        let scale = width.min(height) / 3;
+        let (x, y) = (width / scale, height / scale);
 
         let encoded = encode(x, y, width, height, &decoded_image.to_rgba8().into_vec())
             .map_err(|_| error!("failed to encode to blurhash"))
@@ -68,8 +62,7 @@ impl Blurhash {
 
         Some(BlurhashResult {
             blurhash: encoded,
-            width: original_width,
-            height: original_height,
+            ratio: (width * ratio_percision()) / height,
             file_name,
         })
     }
@@ -112,6 +105,8 @@ impl Blurhash {
                 "-i",
                 in_file,
                 "-y",
+                "-vf",
+                "scale='min(100,iw)':'min(100,ih)':force_original_aspect_ratio=decrease",
                 "-f",
                 "image2pipe",
                 "-vcodec",

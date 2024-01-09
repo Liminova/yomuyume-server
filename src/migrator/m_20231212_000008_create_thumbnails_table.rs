@@ -18,8 +18,7 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(Thumbnails::Id).string().primary_key())
             .col(ColumnDef::new(Thumbnails::Path).string().not_null())
             .col(ColumnDef::new(Thumbnails::Blurhash).string().not_null())
-            .col(ColumnDef::new(Thumbnails::Width).integer().not_null())
-            .col(ColumnDef::new(Thumbnails::Height).integer().not_null())
+            .col(ColumnDef::new(Thumbnails::Ratio).integer().not_null())
             .to_owned();
         manager.create_table(table).await
     }
@@ -36,6 +35,5 @@ pub enum Thumbnails {
     Id,
     Path,
     Blurhash,
-    Width,
-    Height,
+    Ratio,
 }

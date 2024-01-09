@@ -2,7 +2,10 @@ use super::{
     super::{ApiResponse, ErrorResponseBody},
     build_err_resp, build_resp, find_favorite_count, find_page_count, find_page_read,
 };
-use crate::{models::prelude::*, AppState};
+use crate::{
+    models::prelude::*,
+    AppState,
+};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use sea_orm::{
     ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
@@ -244,6 +247,9 @@ pub async fn post_filter(
                     String::from("Thumbnail not found."),
                 )
             })?;
+
+        let (width, height) = super::calculate_dimension(thumbnail_model.ratio);
+
         resp_data.push(FilterTitleResponseBody {
             id: title.id,
             title: title.title,
@@ -254,8 +260,8 @@ pub async fn post_filter(
             page_count,
             page_read,
             blurhash: thumbnail_model.blurhash,
-            width: thumbnail_model.width,
-            height: thumbnail_model.height,
+            width,
+            height,
         });
     }
 

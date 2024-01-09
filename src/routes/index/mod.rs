@@ -3,7 +3,10 @@ mod get_title;
 mod post_filter;
 
 use super::{build_err_resp, build_resp};
-use crate::models::prelude::*;
+use crate::{
+    constants::{blurhash_dimension_cap, ratio_percision},
+    models::prelude::*,
+};
 use axum::http::StatusCode;
 
 pub use get_categories::{get_categories, CategoriesResponseBody};
@@ -74,4 +77,17 @@ pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Opt
         true => None,
         false => Some(favorites.len() as u32),
     }
+}
+
+fn calculate_dimension(ratio: u32) -> (u32, u32) {
+    let max_dimension = blurhash_dimension_cap();
+    let ratio = ratio as f32 / ratio_percision() as f32;
+
+    let (width, height) = if ratio >= 1.0 {
+        (max_dimension, max_dimension / ratio) // Landscape
+    } else {
+        (max_dimension * ratio, max_dimension) // Portrait
+    };
+
+    (width as u32, height as u32)
 }

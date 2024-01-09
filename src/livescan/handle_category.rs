@@ -145,8 +145,7 @@ impl Scanner {
                     id: Set(category_id.clone()),
                     path: Set(thumbnail.1.to_string_lossy().into_owned()),
                     blurhash: Set(thumbnail.0.blurhash),
-                    width: Set(thumbnail.0.width),
-                    height: Set(thumbnail.0.height),
+                    ratio: Set(thumbnail.0.ratio),
                 }
                 .insert(&self.app_state.db)
                 .await

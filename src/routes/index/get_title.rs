@@ -26,7 +26,7 @@ pub struct ResponsePage {
 
 #[derive(Serialize, ToSchema, Debug)]
 pub struct ResponseThumbnail {
-    pub hash: String,
+    pub blurhash: String,
     pub width: u32,
     pub height: u32,
 }
@@ -172,6 +172,8 @@ pub async fn get_title(
         .map(|tag| tag.tag_id)
         .collect::<Vec<_>>();
 
+    let (width, height) = super::calculate_dimension(thumbnail.ratio);
+
     let title = TitleResponseBody {
         category_id: title.category_id,
         title: title.title,
@@ -179,9 +181,9 @@ pub async fn get_title(
         desc: title.description,
         release_date: title.release_date,
         thumbnail: ResponseThumbnail {
-            hash: thumbnail.blurhash,
-            width: thumbnail.width,
-            height: thumbnail.height,
+            blurhash: thumbnail.blurhash,
+            width,
+            height,
         },
         tag_ids,
         pages: pages

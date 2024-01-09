@@ -14,3 +14,11 @@ pub fn extended_img_formats<'a>() -> Vec<&'a str> {
     formats.extend(vec!["jxl", "avif"]);
     formats
 }
+
+pub fn blurhash_dimension_cap() -> f32 {
+    20.0
+}
+
+pub fn ratio_percision() -> u32 {
+    1000
+}
