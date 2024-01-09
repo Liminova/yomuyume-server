@@ -35,14 +35,13 @@ pub async fn auth(
                         .strip_prefix("Bearer ")
                         .map(|stripped| stripped.to_owned())
                 })
-        });
-
-    let token = token.ok_or_else(|| {
-        build_err_resp(
-            StatusCode::UNAUTHORIZED,
-            "You're not logged in, please provide a token.",
-        )
-    })?;
+        })
+        .ok_or_else(|| {
+            build_err_resp(
+                StatusCode::UNAUTHORIZED,
+                "You're not logged in, please provide a token.",
+            )
+        })?;
 
     let claims = decode::<TokenClaims>(
         &token,
