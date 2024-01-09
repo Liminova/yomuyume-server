@@ -10,7 +10,9 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 use std::sync::Arc;
 
 #[utoipa::path(put, path = "/api/user/favorite/:id", responses(
@@ -50,21 +52,19 @@ pub async fn put_favorite(
         })?
         .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Title already favorited."))?;
 
-    let active_favorite = favorites::ActiveModel {
+    let _ = favorites::ActiveModel {
         id: NotSet,
         title_id: Set(title.id),
         user_id: Set(user.id),
-    };
-
-    Favorites::insert(active_favorite)
-        .exec(&data.db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
-            )
-        })?;
+    }
+    .insert(&data.db)
+    .await
+    .map_err(|e| {
+        build_err_resp(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Database error: {}", e),
+        )
+    })?;
 
     Ok(StatusCode::OK)
 }
@@ -106,21 +106,19 @@ pub async fn put_bookmark(
         })?
         .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Title already bookmarked."))?;
 
-    let active_bookmark = favorites::ActiveModel {
+    let _ = bookmarks::ActiveModel {
         id: NotSet,
         title_id: Set(title.id),
         user_id: Set(user.id),
-    };
-
-    Favorites::insert(active_bookmark)
-        .exec(&data.db)
-        .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
-            )
-        })?;
+    }
+    .insert(&data.db)
+    .await
+    .map_err(|e| {
+        build_err_resp(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Database error: {}", e),
+        )
+    })?;
 
     Ok(StatusCode::OK)
 }
