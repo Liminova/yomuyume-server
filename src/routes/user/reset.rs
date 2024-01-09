@@ -67,18 +67,20 @@ pub async fn get_reset(
         ));
     }
 
-    let now = chrono::Utc::now();
-    let token_claims = TokenClaims {
-        sub: user.id.clone(),
-        iat: now.timestamp() as usize,
-        exp: (now + chrono::Duration::hours(1)).timestamp() as usize,
-        purpose: Some(TokenClaimsPurpose::ResetPassword),
-    };
-    let token = jsonwebtoken::encode(
-        &jsonwebtoken::Header::default(),
-        &token_claims,
-        &jsonwebtoken::EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
-    )
+    let token = {
+        let now = chrono::Utc::now();
+        let token_claims = TokenClaims {
+            sub: user.id.clone(),
+            iat: now.timestamp() as usize,
+            exp: (now + chrono::Duration::hours(1)).timestamp() as usize,
+            purpose: Some(TokenClaimsPurpose::ResetPassword),
+        };
+        jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &token_claims,
+            &jsonwebtoken::EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
+        )
+    }
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
