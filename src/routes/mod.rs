@@ -101,6 +101,7 @@ pub struct ApiResponse<T> {
         utils::get_tags,
         file::get_page,
         file::get_thumbnail,
+        file::head_thumbnail,
     ),
     components(schemas(
         CategoriesResponse,

@@ -87,3 +87,36 @@ pub async fn get_thumbnail(
 
     Ok((StatusCode::OK, [(header::CONTENT_TYPE, mime_type)], buffer))
 }
+
+#[utoipa::path(head, path = "/api/file/thumbnail/{thumbnail_id}", responses(
+    (status = 200, description = "Fetch thumbnail header."),
+    (status = 401, description = "Unauthorized", body = utoipa::error::ErrorResponse),
+    (status = 404, description = "Page not found", body = utoipa::error::ErrorResponse)
+))]
+pub async fn head_thumbnail(
+    State(data): State<Arc<AppState>>,
+    Path(thumbnail_id): Path<String>,
+) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+    let thumbnail_model = Thumbnails::find()
+        .filter(thumbnails::Column::Id.eq(thumbnail_id))
+        .one(&data.db)
+        .await
+        .map_err(|e| {
+            build_err_resp(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Database error: {}", e),
+            )
+        })?
+        .ok_or_else(|| build_err_resp(StatusCode::NOT_FOUND, "Page not found."))?;
+
+    let mime_type = format!(
+        "image/{}",
+        PathBuf::from(thumbnail_model.path)
+            .extension()
+            .map(|s| s.to_str().unwrap_or(""))
+            .unwrap_or("")
+            .to_ascii_lowercase()
+    );
+
+    Ok((StatusCode::OK, [(header::CONTENT_TYPE, mime_type)]))
+}
