@@ -37,7 +37,7 @@ pub struct TitleResponseBody {
     pub category_id: String,
     pub title: String,
     pub author: Option<String>,
-    pub description: Option<String>,
+    pub desc: Option<String>,
     pub release_date: Option<String>,
     pub thumbnail: ResponseThumbnail,
     pub tag_ids: Vec<i32>,
@@ -176,7 +176,7 @@ pub async fn get_title(
         category_id: title.category_id,
         title: title.title,
         author: title.author,
-        description: title.description,
+        desc: title.description,
         release_date: title.release_date,
         thumbnail: ResponseThumbnail {
             hash: thumbnail.blurhash,
