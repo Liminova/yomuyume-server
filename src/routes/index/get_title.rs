@@ -11,15 +11,16 @@ use axum::{
 };
 use sea_orm::*;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
 use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Serialize, ToSchema, Debug)]
+#[skip_serializing_none]
 pub struct ResponsePage {
     pub id: String,
     pub title_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 
@@ -31,25 +32,19 @@ pub struct ResponseThumbnail {
 }
 
 #[derive(Serialize, ToSchema)]
+#[skip_serializing_none]
 pub struct TitleResponseBody {
     pub category_id: String,
     pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub release_date: Option<String>,
     pub thumbnail: ResponseThumbnail,
     pub tag_ids: Vec<i32>,
     pub pages: Vec<ResponsePage>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub favorites: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_favorite: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_bookmark: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub page_read: Option<u32>,
     pub date_added: String,
     pub date_updated: String,

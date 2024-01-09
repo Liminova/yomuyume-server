@@ -8,6 +8,7 @@ use sea_orm::{
     ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
@@ -32,6 +33,7 @@ pub struct FilterRequest {
 }
 
 #[derive(Serialize, ToSchema)]
+#[skip_serializing_none]
 pub struct FilterTitleResponseBody {
     id: String,
     title: String,
