@@ -145,11 +145,14 @@ pub async fn title_thumbnail_finder(
     explicit_name: &Option<String>,
     blurhash: &Blurhash,
 ) -> Option<BlurhashResult> {
+    // Creating a temp dir for the title
     let title_temp_dir = {
         let mut title_temp_dir = PathBuf::from(temp_dir);
         title_temp_dir.push(title_path.file_stem()?.to_string_lossy().to_string());
         title_temp_dir
     };
+
+    // Extract all
     ZipArchive::new(
         File::open(title_path)
             .map_err(|e| {
@@ -171,12 +174,21 @@ pub async fn title_thumbnail_finder(
     })
     .ok()?;
 
-    thumbnail_finder(&title_temp_dir, explicit_name, blurhash)
+    // Find and encode thumbnail
+    let result = thumbnail_finder(&title_temp_dir, explicit_name, blurhash)
         .map(|(blurhash, _)| blurhash)
         .ok_or_else(|| {
             let temp_dir = title_temp_dir.to_string_lossy();
             error!("no thumbnail found in {}", temp_dir);
             std::io::Error::new(std::io::ErrorKind::NotFound, "no thumbnail found")
         })
-        .ok()
+        .ok();
+
+    // Delete temp dir
+    let handle = tokio::spawn(async move {
+        let _ = tokio::fs::remove_dir_all(&title_temp_dir).await;
+    });
+    std::mem::drop(handle);
+
+    result
 }
