@@ -2,10 +2,7 @@ use super::{
     super::{ApiResponse, ErrorResponseBody},
     build_err_resp, build_resp, find_favorite_count, find_page_count, find_page_read,
 };
-use crate::{
-    models::prelude::*,
-    AppState,
-};
+use crate::{models::prelude::*, AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use sea_orm::{
     ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
