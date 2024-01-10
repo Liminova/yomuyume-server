@@ -393,6 +393,29 @@ impl Scanner {
         title_id: &str,
         title_path: &PathBuf,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let thumbnail_model = Thumbnails::find_by_id(title_id)
+            .one(&self.app_state.db)
+            .await
+            .map_err(|e| {
+                error!("error search thumbnail in DB: {}", e);
+                e
+            })?;
+
+        if let Some(thumbnail_model) = thumbnail_model {
+            if Some(thumbnail_model.path) == title_metadata.thumbnail {
+                info!("thumbnail in DB == thumbnail in metadata, skipping");
+                return Ok(());
+            }
+        }
+
+        let _ = Thumbnails::delete_by_id(title_id)
+            .exec(&self.app_state.db)
+            .await
+            .map_err(|e| {
+                error!("error delete thumbnail in DB: {}", e);
+                e
+            })?;
+
         let thumbnail = title_thumbnail_finder(
             &self.temp_dir,
             title_path,
