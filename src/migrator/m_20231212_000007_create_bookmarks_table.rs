@@ -29,16 +29,16 @@ impl MigrationTrait for Migration {
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-bookmark-user_id")
-                    .from(Users::Table, Users::Id)
-                    .to(Bookmarks::Table, Bookmarks::UserId)
+                    .from(Bookmarks::Table, Bookmarks::UserId)
+                    .to(Users::Table, Users::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .col(ColumnDef::new(Bookmarks::TitleId).uuid().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-bookmark-title_id")
-                    .from(Titles::Table, Titles::Id)
-                    .to(Bookmarks::Table, Bookmarks::TitleId)
+                    .from(Bookmarks::Table, Bookmarks::TitleId)
+                    .to(Titles::Table, Titles::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .to_owned();

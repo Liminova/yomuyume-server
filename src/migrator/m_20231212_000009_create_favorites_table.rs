@@ -29,16 +29,16 @@ impl MigrationTrait for Migration {
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-favorite-user_id")
-                    .from(Users::Table, Users::Id)
-                    .to(Favorites::Table, Favorites::UserId)
+                    .from(Favorites::Table, Favorites::UserId)
+                    .to(Users::Table, Users::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .col(ColumnDef::new(Favorites::TitleId).uuid().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-favorite-title_id")
-                    .from(Titles::Table, Titles::Id)
-                    .to(Favorites::Table, Favorites::TitleId)
+                    .from(Favorites::Table, Favorites::TitleId)
+                    .to(Titles::Table, Titles::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .to_owned();
