@@ -31,26 +31,32 @@ pub async fn put_favorite(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when finding title: {}", e),
             )
         })?
         .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid title id."))?;
 
-    let _ = Favorites::find()
+    let favorite_model = Favorites::find()
         .filter(
             Condition::all()
-                .add(favorites::Column::TitleId.contains(&title.id))
-                .add(favorites::Column::UserId.contains(&user.id)),
+                .add(favorites::Column::TitleId.eq(&title.id))
+                .add(favorites::Column::UserId.eq(&user.id)),
         )
         .one(&data.db)
         .await
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when finding favorite: {}", e),
             )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Title already favorited."))?;
+        })?;
+
+    if favorite_model.is_some() {
+        return Err(build_err_resp(
+            StatusCode::BAD_REQUEST,
+            "Title already favorited.",
+        ));
+    }
 
     let _ = favorites::ActiveModel {
         id: NotSet,
@@ -62,7 +68,7 @@ pub async fn put_favorite(
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Database error: {}", e),
+            format!("Database error when inserting favorite: {}", e),
         )
     })?;
 
@@ -85,26 +91,32 @@ pub async fn put_bookmark(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when finding title: {}", e),
             )
         })?
         .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid title id."))?;
 
-    let _ = Bookmarks::find()
+    let bookmark_model = Bookmarks::find()
         .filter(
             Condition::all()
-                .add(bookmarks::Column::TitleId.contains(&title.id))
-                .add(bookmarks::Column::UserId.contains(&user.id)),
+                .add(bookmarks::Column::TitleId.eq(&title.id))
+                .add(bookmarks::Column::UserId.eq(&user.id)),
         )
         .one(&data.db)
         .await
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when finding bookmark: {}", e),
             )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Title already bookmarked."))?;
+        })?;
+
+    if bookmark_model.is_some() {
+        return Err(build_err_resp(
+            StatusCode::BAD_REQUEST,
+            "Title already bookmarked.",
+        ));
+    }
 
     let _ = bookmarks::ActiveModel {
         id: NotSet,
@@ -116,7 +128,7 @@ pub async fn put_bookmark(
     .map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Database error: {}", e),
+            format!("Database error when inserting bookmark: {}", e),
         )
     })?;
 
@@ -139,7 +151,7 @@ pub async fn delete_favorite(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when finding title: {}", e),
             )
         })?
         .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid title id."))?;
@@ -155,7 +167,7 @@ pub async fn delete_favorite(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when deleting favorite: {}", e),
             )
         })?;
 
@@ -178,7 +190,7 @@ pub async fn delete_bookmark(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when finding title: {}", e),
             )
         })?
         .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid title id."))?;
@@ -194,7 +206,7 @@ pub async fn delete_bookmark(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("Database error when deleting bookmark: {}", e),
             )
         })?;
 
