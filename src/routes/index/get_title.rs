@@ -40,9 +40,10 @@ pub struct TitleResponseBody {
     pub desc: Option<String>,
     pub release_date: Option<String>,
     pub thumbnail: ResponseThumbnail,
-    pub tag_ids: Vec<i32>,
+    pub tag_ids: Vec<u32>,
     pub pages: Vec<ResponsePage>,
     pub favorites: Option<u64>,
+    pub bookmarks: Option<u64>,
     pub is_favorite: Option<bool>,
     pub is_bookmark: Option<bool>,
     pub page_read: Option<u32>,
@@ -67,7 +68,7 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[1] DB error getting title: {}", e),
             )
         })?
         .ok_or_else(|| build_err_resp(StatusCode::NO_CONTENT, "No title found."))?;
@@ -78,7 +79,7 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[2] DB error getting thumbnail: {}", e),
             )
         })?
         .ok_or_else(|| build_err_resp(StatusCode::NO_CONTENT, "No thumbnail found."))?;
@@ -91,9 +92,29 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[3] DB error getting pages: {}", e),
             )
         })?;
+
+    // place the thumbnail.path at the front of the Vec<pages::Model>
+    // and convert it to Vec<ResponsePage>
+    let pages = pages
+        .into_iter()
+        .fold(Vec::new(), |mut list, page_model| {
+            if page_model.path == thumbnail.path {
+                list.insert(0, page_model);
+            } else {
+                list.push(page_model);
+            }
+            list
+        })
+        .into_iter()
+        .map(|page| ResponsePage {
+            id: page.id,
+            title_id: page.title_id,
+            description: page.description,
+        })
+        .collect::<Vec<_>>();
 
     let is_favorite = Favorites::find()
         .filter(
@@ -106,7 +127,7 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[4] DB error getting favorite: {}", e),
             )
         })?
         .map(|_| true);
@@ -122,11 +143,10 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[5] DB error getting bookmark: {}", e),
             )
-        })
-        .map(|_| true)
-        .ok();
+        })?
+        .map(|_| true);
 
     let page_read = Progresses::find()
         .filter(
@@ -139,7 +159,7 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[6] DB error getting progress: {}", e),
             )
         })?
         .map(|p| p.page);
@@ -151,7 +171,21 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[7] DB error getting favorites: {}", e),
+            )
+        })? {
+        0 => None,
+        n => Some(n),
+    };
+
+    let bookmarks = match Bookmarks::find()
+        .filter(bookmarks::Column::TitleId.eq(&title.id))
+        .count(&data.db)
+        .await
+        .map_err(|e| {
+            build_err_resp(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("[7] DB error getting bookmarks: {}", e),
             )
         })? {
         0 => None,
@@ -165,7 +199,7 @@ pub async fn get_title(
         .map_err(|e| {
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
+                format!("[8] DB error getting tags: {}", e),
             )
         })?
         .iter()
@@ -179,22 +213,16 @@ pub async fn get_title(
         title: title.title,
         author: title.author,
         desc: title.description,
-        release_date: title.release_date,
+        release_date: title.release,
         thumbnail: ResponseThumbnail {
             blurhash: thumbnail.blurhash,
             width,
             height,
         },
         tag_ids,
-        pages: pages
-            .into_iter()
-            .map(|page| ResponsePage {
-                id: page.id,
-                title_id: page.title_id,
-                description: page.description,
-            })
-            .collect::<Vec<_>>(),
+        pages,
         favorites,
+        bookmarks,
         is_favorite,
         is_bookmark,
         page_read,
