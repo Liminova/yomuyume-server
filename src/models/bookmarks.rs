@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 #[sea_orm(table_name = "bookmarks")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: u32,
     pub user_id: String,
     pub title_id: String,
 }
