@@ -57,7 +57,7 @@ impl TitleMetadata {
         new.author = new.parse_string("author");
         new.tags = new.parse_array("tags");
         new.thumbnail = new.parse_string("thumbnail");
-        new.release_date = new.parse_string("release_date");
+        new.release_date = new.parse_string("release");
         new.descriptions = new.parse_table("descriptions");
         new.path = path.clone();
 
