@@ -26,7 +26,7 @@ pub async fn get_categories(
     let categories = Categories::find().all(&data.db).await.map_err(|e| {
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Database error: {}", e),
+            format!("DB error getting categories: {}", e),
         )
     })?;
 
