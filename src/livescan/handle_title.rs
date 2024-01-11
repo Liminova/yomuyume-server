@@ -308,35 +308,19 @@ impl Scanner {
                 let tag_id = match tag_model {
                     Some(tag_model) => tag_model.id,
                     None => {
-                        let result = tags::ActiveModel {
+                        let active_tag = tags::ActiveModel {
                             id: NotSet,
                             name: Set(tag.clone()),
-                        }
-                        .insert(&self.app_state.db)
-                        .await;
+                        };
+
+                        let result = Tags::insert(active_tag).exec(&self.app_state.db).await;
 
                         match result {
-                            Ok(_) => {}
+                            Ok(result) => result.last_insert_id,
                             Err(e) => {
                                 error!("error inserting tag: {}", e);
                                 continue 'iteration;
                             }
-                        };
-
-                        match tags::Entity::find()
-                            .filter(tags::Column::Name.eq(&tag))
-                            .one(&self.app_state.db)
-                            .await
-                            .map_err(|e| {
-                                error!("error finding tag: {}", e);
-                                e
-                            }) {
-                            Ok(Some(tag_model)) => tag_model.id,
-                            Ok(None) => {
-                                error!("cannot find tag after inserting, this should not happend");
-                                continue 'iteration;
-                            }
-                            Err(_) => continue 'iteration,
                         }
                     }
                 };
