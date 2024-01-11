@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct TagsMapResponseBody {
-    pub tags: Vec<(i32, String)>,
+    pub tags: Vec<(u32, String)>,
 }
 
 #[utoipa::path(get, path = "/api/utils/tags", responses(
