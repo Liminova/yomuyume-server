@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-titletag-tag_id")
-                    .from(TitlesTags::Table, TitlesTags::TitleId)
+                    .from(TitlesTags::Table, TitlesTags::TagId)
                     .to(Tags::Table, Tags::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
