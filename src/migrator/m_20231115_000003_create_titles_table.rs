@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
             )
             .col(ColumnDef::new(Titles::Author).string())
             .col(ColumnDef::new(Titles::Description).string())
-            .col(ColumnDef::new(Titles::ReleaseDate).date_time())
+            .col(ColumnDef::new(Titles::Release).date_time())
             .col(ColumnDef::new(Titles::Hash).string())
             .col(ColumnDef::new(Titles::Path).string())
             .col(ColumnDef::new(Titles::DateAdded).date_time())
@@ -52,7 +52,7 @@ pub enum Titles {
     CategoryId,
     Author,
     Description,
-    ReleaseDate,
+    Release,
     Hash,
     Path,
     DateAdded,
