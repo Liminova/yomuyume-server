@@ -12,7 +12,7 @@ pub struct Model {
     pub category_id: String,
     pub author: Option<String>,
     pub description: Option<String>,
-    pub release_date: Option<String>,
+    pub release: Option<String>,
     pub hash: String,
     pub path: String,
     pub date_added: String,
