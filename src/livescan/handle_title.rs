@@ -5,7 +5,7 @@ use crate::{
 };
 use fasthash::murmur3;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, Set,
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set,
 };
 use std::{
     fs::File,
@@ -30,9 +30,6 @@ impl Scanner {
             title_metadata_path
         })
         .await;
-
-        debug!("metadata | [title] {:?} [desc] {:?} [thumb] {:?} [author] {:?} [release_date] {:?} [tags] {:?}",
-            &title_metadata.title, &title_metadata.description, &title_metadata.thumbnail, &title_metadata.author, &title_metadata.release_date, &title_metadata.tags);
         /* #endregion */
 
         /* #region - title's name defined in <title>.toml ? use it : use title file_stem */
@@ -51,7 +48,7 @@ impl Scanner {
         debug!("title | {:?}", &title_name);
         /* #endregion */
 
-        /* #region - check if title exist; gen uuid if needed; handle metadata changes & thumbnail */
+        /* #region - check if title exist; gen uuid if needed */
         let title_hash_current = Self::hash(&title.path).await.map_err(|e| {
             error!("error hashing: {}", e);
             e
@@ -72,99 +69,124 @@ impl Scanner {
                 tracing::debug!("hash in db: {}", title_model.hash);
                 tracing::debug!("hash current: {}", title_hash_current);
 
-                /* #region - update fields if metadata changed */
-                let mut need_update = false;
-                let mut active_title: titles::ActiveModel = Titles::find_by_id(&title_model.id)
-                    .one(&self.app_state.db)
-                    .await
-                    .map_err(|e| {
-                        error!("error search title in DB: {}", e);
-                        e
-                    })?
-                    .ok_or_else(|| {
-                        let err_msg = "error search title in DB, this should not happend";
-                        error!("{}", err_msg);
-                        err_msg
-                    })?
-                    .into();
-                if title_model.title != title_name {
-                    need_update = true;
-                    active_title.title = Set(title_name.clone());
-                }
-                if title_model.category_id != category_id {
-                    need_update = true;
-                    active_title.category_id = Set(category_id.clone());
-                }
-                if title_model.description != title_metadata.description {
-                    need_update = true;
-                    active_title.description = Set(title_metadata.description.clone());
-                }
-                if title_model.author != title_metadata.author {
-                    need_update = true;
-                    active_title.author = Set(title_metadata.author.clone());
-                }
-                if title_model.release_date != title_metadata.release_date {
-                    need_update = true;
-                    active_title.release_date = Set(title_metadata.release_date.clone());
-                }
-                if title_model.hash != title_hash_current {
-                    need_update = true;
-                    active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
-                }
-                if need_update {
-                    let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
-                        error!("error update metadata in DB: {}", e);
-                        e
-                    })?;
-                }
-                /* #endregion */
-
-                /* #region - update thumbnail if metadata changed */
-                let thumbnail_filename_in_db = Thumbnails::find()
-                    .filter(thumbnails::Column::Id.eq(&title_id))
-                    .one(&self.app_state.db)
-                    .await
-                    .map_err(|e| {
-                        error!("error search thumbnail in DB: {}", e);
-                        e
-                    })?
-                    .map(|t| t.path);
-                if thumbnail_filename_in_db != title_metadata.thumbnail {
-                    info!("thumbnail in DB != in metadata, re-encoding");
-                    let _ = Thumbnails::delete_many()
-                        .filter(thumbnails::Column::Id.eq(&title_id))
-                        .exec(&self.app_state.db)
-                        .await
-                        .map_err(|e| {
-                            error!("error delete thumbnail in DB: {}", e);
-                            e
-                        })?;
-                    self.update_thumbnail(&mut title_metadata, &title_id, &title.path)
-                        .await?;
-                }
-                /* #endregion */
-
-                /* #region - update pages' descs if metadata changed */
-                let page_models = Pages::find()
-                    .filter(pages::Column::TitleId.eq(&title_id))
-                    .all(&self.app_state.db)
-                    .await
-                    .map_err(|e| {
-                        error!("error search pages in DB: {}", e);
-                        e
-                    })?;
-                for page in page_models {
-                    let page_desc_metadata = title_metadata.get_page_desc(page.path.as_str());
-                    if page.description != page_desc_metadata {
-                        let mut active_page: pages::ActiveModel = page.into();
-                        active_page.description = Set(page_desc_metadata);
-                        let _ = active_page.update(&self.app_state.db).await.map_err(|e| {
-                            error!("error update page in DB: {}", e);
-                            e
-                        })?;
+                /* update fields if metadata changed */
+                'scoped: {
+                    let mut need_update = false;
+                    let mut active_title: titles::ActiveModel =
+                        match Titles::find_by_id(&title_model.id)
+                            .one(&self.app_state.db)
+                            .await
+                        {
+                            Ok(Some(title_model)) => title_model.into(),
+                            Ok(None) => {
+                                error!("error search title in DB, this should not happend");
+                                break 'scoped;
+                            }
+                            Err(e) => {
+                                error!("error search title in DB: {}", e);
+                                break 'scoped;
+                            }
+                        };
+                    if title_model.title != title_name {
+                        need_update = true;
+                        active_title.title = Set(title_name.clone());
+                    }
+                    if title_model.category_id != category_id {
+                        need_update = true;
+                        active_title.category_id = Set(category_id.clone());
+                    }
+                    if title_model.description != title_metadata.description {
+                        need_update = true;
+                        active_title.description = Set(title_metadata.description.clone());
+                    }
+                    if title_model.author != title_metadata.author {
+                        need_update = true;
+                        active_title.author = Set(title_metadata.author.clone());
+                    }
+                    if title_model.release != title_metadata.release_date {
+                        need_update = true;
+                        active_title.release = Set(title_metadata.release_date.clone());
+                    }
+                    if title_model.hash != title_hash_current {
+                        need_update = true;
+                        active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
+                    }
+                    if !need_update {
+                        break 'scoped;
+                    }
+                    match active_title.update(&self.app_state.db).await {
+                        Ok(_) => {}
+                        Err(e) => {
+                            error!("error update metadata in DB: {}", e);
+                            break 'scoped;
+                        }
                     }
                 }
-                /* #endregion */
+
+                /* update thumbnail if metadata changed */
+                'scoped: {
+                    let thumbnail_filename_in_db = match Thumbnails::find()
+                        .filter(thumbnails::Column::Id.eq(&title_id))
+                        .one(&self.app_state.db)
+                        .await
+                    {
+                        Ok(Some(thumbnail_model)) => Some(thumbnail_model.path),
+                        Ok(None) => {
+                            break 'scoped;
+                        }
+                        Err(e) => {
+                            error!("error search thumbnail in DB: {}", e);
+                            break 'scoped;
+                        }
+                    };
+
+                    if thumbnail_filename_in_db != title_metadata.thumbnail {
+                        info!("thumbnail in DB != in metadata, re-encoding");
+                        match Thumbnails::delete_many()
+                            .filter(thumbnails::Column::Id.eq(&title_id))
+                            .exec(&self.app_state.db)
+                            .await
+                        {
+                            Ok(_) => {}
+                            Err(e) => {
+                                error!("error delete thumbnail in DB: {}", e);
+                                break 'scoped;
+                            }
+                        };
+                        self.update_thumbnail(&mut title_metadata, &title_id, &title.path)
+                            .await?;
+                    }
+                }
+
+                /* update pages' descs if metadata changed */
+                'scoped: {
+                    let page_models = match Pages::find()
+                        .filter(pages::Column::TitleId.eq(&title_id))
+                        .all(&self.app_state.db)
+                        .await
+                    {
+                        Ok(page_models) => page_models,
+                        Err(e) => {
+                            error!("error search pages in DB: {}", e);
+                            break 'scoped;
+                        }
+                    };
+                    'iteration: for page in page_models {
+                        let page_desc_metadata = title_metadata.get_page_desc(page.path.as_str());
+                        if page.description == page_desc_metadata {
+                            continue 'iteration;
+                        }
+                        let mut active_page: pages::ActiveModel = page.into();
+                        active_page.description = Set(page_desc_metadata);
+                        match active_page.update(&self.app_state.db).await {
+                            Ok(_) => {}
+                            Err(e) => {
+                                error!("error update page in DB: {}", e);
+                                break 'scoped;
+                            }
+                        };
+                    }
+                }
 
                 if title_model.hash == title_hash_current {
                     info!("found in DB by path, hash match, skipping");
@@ -196,7 +218,7 @@ impl Scanner {
                 active_title.category_id = Set(category_id.clone());
                 active_title.description = Set(title_metadata.description.clone());
                 active_title.author = Set(title_metadata.author.clone());
-                active_title.release_date = Set(title_metadata.release_date.clone());
+                active_title.release = Set(title_metadata.release_date.clone());
                 active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
 
                 let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
@@ -226,7 +248,7 @@ impl Scanner {
                 description: Set(title_metadata.description.clone()),
                 title: Set(title_name),
                 author: Set(title_metadata.author.clone()),
-                release_date: Set(title_metadata.release_date.clone()),
+                release: Set(title_metadata.release_date.clone()),
                 path: Set(title.path_lossy()),
                 hash: Set(title_hash_current),
                 date_added: Set(now.clone()),
@@ -260,118 +282,111 @@ impl Scanner {
         }
         /* #endregion */
 
-        /* #region - tags */
-        if let Some(tags) = title_metadata.tags.clone() {
-            for tag in tags {
-                // Get the tag_id
-                let tag_id = {
-                    // find the tag_name in DB first
-                    let tag_in_db = tags::Entity::find()
-                        .filter(tags::Column::Name.eq(&tag))
-                        .one(&self.app_state.db)
-                        .await
-                        .map_err(|e| {
-                            error!("error finding tag: {}", e);
-                            e
-                        })?;
+        /* tags */
+        'scoped: {
+            if title_metadata.tags.is_none() {
+                break 'scoped;
+            }
+            let tags = title_metadata.tags.clone().unwrap_or_default();
+            if tags.is_empty() {
+                break 'scoped;
+            }
+            'iteration: for tag in tags {
+                let tag_model = match tags::Entity::find()
+                    .filter(tags::Column::Name.eq(&tag))
+                    .one(&self.app_state.db)
+                    .await
+                    .map_err(|e| {
+                        error!("error finding tag: {}", e);
+                        e
+                    }) {
+                    Ok(Some(tag_model)) => Some(tag_model),
+                    Ok(None) => None,
+                    Err(_) => continue 'iteration,
+                };
 
-                    // if found, get the id
-                    if let Some(tag) = tag_in_db {
-                        tag.id
-                    } else {
-                        // else, insert the tag_name to DB, get the id
-                        let _ = tags::ActiveModel {
+                let tag_id = match tag_model {
+                    Some(tag_model) => tag_model.id,
+                    None => {
+                        let result = tags::ActiveModel {
                             id: NotSet,
                             name: Set(tag.clone()),
                         }
                         .insert(&self.app_state.db)
-                        .await
-                        .map_err(|e| {
-                            error!("error inserting tag: {}", e);
-                            e
-                        })?;
-                        tags::Entity::find()
+                        .await;
+
+                        match result {
+                            Ok(_) => {}
+                            Err(e) => {
+                                error!("error inserting tag: {}", e);
+                                continue 'iteration;
+                            }
+                        };
+
+                        match tags::Entity::find()
                             .filter(tags::Column::Name.eq(&tag))
                             .one(&self.app_state.db)
                             .await
                             .map_err(|e| {
                                 error!("error finding tag: {}", e);
                                 e
-                            })?
-                            .ok_or_else(|| {
-                                let err_msg = "error finding tag, this should not happend";
-                                error!("{}", err_msg);
-                                err_msg
-                            })?
-                            .id
+                            }) {
+                            Ok(Some(tag_model)) => tag_model.id,
+                            Ok(None) => {
+                                error!("cannot find tag after inserting, this should not happend");
+                                continue 'iteration;
+                            }
+                            Err(_) => continue 'iteration,
+                        }
                     }
                 };
 
-                // Insert the title_id and tag_id to titles_tags
-                let _ = titles_tags::ActiveModel {
+                let result = titles_tags::ActiveModel {
                     id: NotSet,
                     title_id: Set(title_id.clone()),
                     tag_id: Set(tag_id),
                 }
                 .insert(&self.app_state.db)
-                .await
-                .map_err(|e| {
-                    error!("error inserting titles_tags: {}", e);
-                    e
-                })?;
+                .await;
+                match result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("error inserting title_tag: {}", e);
+                        continue 'iteration;
+                    }
+                };
             }
         }
-        /* #endregion */
 
         /* #region - pages */
+        let _ = Pages::delete_many()
+            .filter(pages::Column::TitleId.eq(&title_id))
+            .exec(&self.app_state.db)
+            .await
+            .map_err(|e| {
+                error!("error deleting pages in DB: {}", e);
+                e
+            })?;
+
         let pages = list_files_in_zip(&title.path)?;
         debug!("file_names: {:?}", pages);
 
-        // For each model in pages::Entity
-        // - If `page` is not in `pages` above, delete it from the database.
-        let page_models = Pages::find()
-            .filter(pages::Column::TitleId.eq(&title_id))
-            .all(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error search pages in DB: {}", e);
-                e
-            })?;
-        for page_model in page_models {
-            if !pages.contains(&page_model.path) {
-                page_model.delete(&self.app_state.db).await.map_err(|e| {
-                    error!("error deleting page in DB: {}", e);
-                    e
-                })?;
-            }
-        }
-        // For each `page` in `pages` (just scanned):
-        // - If `page` not in pages::Entity, insert
-        'next: for page in &pages {
-            let page_model = Pages::find()
-                .filter(pages::Column::Path.eq(page))
-                .one(&self.app_state.db)
-                .await
-                .map_err(|e| {
-                    error!("error search page in DB: {}", e);
-                    e
-                })?;
-            if page_model.is_some() {
-                continue 'next;
-            }
-
-            let _ = pages::ActiveModel {
+        'iteration: for page in &pages {
+            let result = pages::ActiveModel {
                 id: Set(Uuid::new_v4().to_string()),
                 title_id: Set(title_id.clone()),
                 path: Set(page.clone()),
                 description: Set(title_metadata.get_page_desc(page)),
             }
             .insert(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error inserting page to DB: {}", e);
-                e
-            })?;
+            .await;
+            match result {
+                Ok(_) => {}
+                Err(e) => {
+                    error!("error inserting page to DB: {}", e);
+                    continue 'iteration;
+                }
+            };
         }
         /* #endregion */
 
