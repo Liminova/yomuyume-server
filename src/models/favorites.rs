@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 #[schema(as = Favorite)]
 #[sea_orm(table_name = "favorites")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key)]
     pub id: u32,
     pub user_id: String,
     pub title_id: String,
