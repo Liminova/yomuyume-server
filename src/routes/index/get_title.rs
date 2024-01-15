@@ -12,7 +12,7 @@ use axum::{
 use sea_orm::*;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -20,7 +20,7 @@ use uuid::Uuid;
 #[skip_serializing_none]
 pub struct ResponsePage {
     pub id: String,
-    pub title_id: String,
+    pub format: String,
     pub description: Option<String>,
 }
 
@@ -29,6 +29,7 @@ pub struct ResponseThumbnail {
     pub blurhash: String,
     pub width: u32,
     pub height: u32,
+    pub format: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -111,7 +112,11 @@ pub async fn get_title(
         .into_iter()
         .map(|page| ResponsePage {
             id: page.id,
-            title_id: page.title_id,
+            format: PathBuf::from(page.path)
+                .extension()
+                .map(|s| s.to_str().unwrap_or(""))
+                .unwrap_or("")
+                .to_ascii_lowercase(),
             description: page.description,
         })
         .collect::<Vec<_>>();
@@ -218,6 +223,11 @@ pub async fn get_title(
             blurhash: thumbnail.blurhash,
             width,
             height,
+            format: PathBuf::from(thumbnail.path)
+                .extension()
+                .map(|s| s.to_str().unwrap_or(""))
+                .unwrap_or("")
+                .to_ascii_lowercase(),
         },
         tag_ids,
         pages,
