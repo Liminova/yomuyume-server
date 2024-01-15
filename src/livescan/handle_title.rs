@@ -4,9 +4,7 @@ use crate::{
     models::{metadata::TitleMetadata, prelude::*},
 };
 use fasthash::murmur3;
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set,
-};
+use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
 use std::{
     fs::File,
     path::{Path, PathBuf},
