@@ -9,7 +9,7 @@ use sea_orm::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 use utoipa::ToSchema;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -43,10 +43,12 @@ pub struct FilterTitleResponseBody {
     favorite_count: Option<u32>,
     page_count: u32,
     page_read: Option<u32>,
+
     /// Thumbnail
     blurhash: String,
     width: u32,
     height: u32,
+    format: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -256,9 +258,15 @@ pub async fn post_filter(
             favorite_count,
             page_count,
             page_read,
+
             blurhash: thumbnail_model.blurhash,
             width,
             height,
+            format: PathBuf::from(thumbnail_model.path)
+                .extension()
+                .map(|s| s.to_str().unwrap_or(""))
+                .unwrap_or("")
+                .to_ascii_lowercase(),
         });
     }
 
