@@ -51,6 +51,19 @@ pub async fn post_register(
         ));
     }
 
+    let password = &query.password;
+    let has_uppercase = password.chars().any(|c| c.is_uppercase());
+    let has_lowercase = password.chars().any(|c| c.is_lowercase());
+    let has_numeric = password.chars().any(|c| c.is_numeric());
+    let has_special = password.chars().any(|c| c.is_ascii_punctuation());
+    let has_valid_length = password.len() >= 8 && password.len() <= 100;
+    if !(has_uppercase && has_lowercase && has_numeric && has_special && has_valid_length) {
+        return Err(build_err_resp(
+            StatusCode::BAD_REQUEST,
+            "Password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character.",
+        ));
+    }
+
     let salt = SaltString::generate(&mut OsRng);
     let hashed_password = Argon2::default()
         .hash_password(query.password.as_bytes(), &salt)
