@@ -27,25 +27,10 @@ pub async fn get_tags(
         .await
         .map_err(|_| build_err_resp(StatusCode::INTERNAL_SERVER_ERROR, "Failed to get tags."))?;
 
-    let mut tag_map = Vec::new();
-    for tag in tags {
-        let tag = Tags::find_by_id(tag.id)
-            .one(&data.db)
-            .await
-            .map_err(|_| {
-                build_err_resp(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to get categories.",
-                )
-            })?
-            .ok_or_else(|| {
-                build_err_resp(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to get categories.",
-                )
-            })?;
-        tag_map.push((tag.id, tag.name));
-    }
+    let tag_map = tags
+        .into_iter()
+        .map(|tag| (tag.id, tag.name))
+        .collect::<Vec<(u32, String)>>();
 
     Ok(build_resp(
         StatusCode::OK,
