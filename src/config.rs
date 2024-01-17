@@ -36,7 +36,7 @@ impl Config {
 
     pub fn init() -> Self {
         let app_name = Self::get_env("APP_NAME", Some("Yomuyume"));
-        let server_address = Self::get_env("SERVER_ADDRESS", Some("127.0.0.1"));
+        let server_address = Self::get_env("SERVER_ADDRESS", Some("0.0.0.0"));
         let server_port = Self::get_env("SERVER_PORT", Some("3000"))
             .parse()
             .unwrap_or(3000);
