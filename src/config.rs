@@ -44,7 +44,9 @@ impl Config {
         let library_path = Self::get_env("LIBRARY_PATH", Some("./library"));
 
         let jwt_secret = Self::get_env("JWT_SECRET", None);
-        let jwt_maxage_day = Self::get_env("JWT_MAXAGE_DAY", None).parse().unwrap_or(30);
+        let jwt_maxage_day = Self::get_env("JWT_MAXAGE_DAY", Some("30"))
+            .parse()
+            .unwrap_or(30);
 
         let smtp_host = Self::may_get("SMTP_HOST", None);
         let smtp_port = Self::get_env("SMTP_PORT", Some("587"))
