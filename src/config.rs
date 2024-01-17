@@ -19,7 +19,7 @@ pub struct Config {
     pub ffmpeg_path: Option<String>,
     pub djxl_path: Option<String>,
     pub ffmpeg_log_path: Option<String>,
-    pub temp_dir: String,
+    pub temp_path: String,
 }
 
 impl Config {
@@ -82,7 +82,7 @@ impl Config {
             ffmpeg_path,
             djxl_path,
             ffmpeg_log_path,
-            temp_dir,
+            temp_path: temp_dir,
         }
     }
 }
