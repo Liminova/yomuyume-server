@@ -60,7 +60,7 @@ impl Config {
         let ffmpeg_path = Self::may_get("FFMPEG_PATH", None);
         let djxl_path = Self::may_get("DJXL_PATH", None);
         let ffmpeg_log_path = Self::may_get("FFMPEG_LOG_PATH", None);
-        let temp_dir = Self::get_env("TEMP_DIR", Some("./temp"));
+        let temp_dir = Self::get_env("TEMP_DIR", Some("/tmp"));
 
         Self {
             library_path,
