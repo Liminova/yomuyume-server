@@ -19,7 +19,7 @@ pub struct Config {
     pub ffmpeg_path: Option<String>,
     pub djxl_path: Option<String>,
     pub ffmpeg_log_path: Option<String>,
-    pub temp_dir: String,
+    pub temp_path: String,
 }
 
 impl Config {
@@ -60,7 +60,7 @@ impl Config {
         let ffmpeg_path = Self::may_get("FFMPEG_PATH", None);
         let djxl_path = Self::may_get("DJXL_PATH", None);
         let ffmpeg_log_path = Self::may_get("FFMPEG_LOG_PATH", None);
-        let temp_dir = Self::get_env("TEMP_DIR", Some("/tmp"));
+        let temp_path = Self::get_env("TEMP_PATH", Some("/tmp"));
 
         Self {
             library_path,
@@ -82,7 +82,7 @@ impl Config {
             ffmpeg_path,
             djxl_path,
             ffmpeg_log_path,
-            temp_dir,
+            temp_path,
         }
     }
 }

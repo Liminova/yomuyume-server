@@ -420,7 +420,7 @@ impl Scanner {
             })?;
 
         let thumbnail = title_thumbnail_finder(
-            &self.temp_dir,
+            &self.temp_path,
             title_path,
             &title_metadata.thumbnail,
             &self.blurhash,
