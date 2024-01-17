@@ -7,7 +7,7 @@ pub struct Config {
     pub library_path: String,
 
     pub jwt_secret: String,
-    pub jwt_maxage_second: i64,
+    pub jwt_maxage: chrono::Duration,
 
     pub smtp_host: Option<String>,
     pub smtp_port: u16,
@@ -44,9 +44,9 @@ impl Config {
         let library_path = Self::get_env("LIBRARY_PATH", Some("./library"));
 
         let jwt_secret = Self::get_env("JWT_SECRET", None);
-        let jwt_maxage_second = Self::get_env("JWT_MAXAGE_SECOND", None)
+        let jwt_maxage_day = Self::get_env("JWT_MAXAGE_DAY", None)
             .parse()
-            .unwrap_or(2592000);
+            .unwrap_or(30);
 
         let smtp_host = Self::may_get("SMTP_HOST", None);
         let smtp_port = Self::get_env("SMTP_PORT", Some("587"))
@@ -70,7 +70,7 @@ impl Config {
             database_url,
 
             jwt_secret,
-            jwt_maxage_second,
+            jwt_maxage: chrono::Duration::days(jwt_maxage_day),
 
             smtp_host,
             smtp_port,
