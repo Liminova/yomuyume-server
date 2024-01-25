@@ -61,6 +61,9 @@ impl Scanner {
 
         tracing::debug!("✅ finished scanning library");
 
+        let mut scanning_state = self.app_state.scanning_complete.lock().await;
+        *scanning_state = true;
+
         Ok(())
     }
 }

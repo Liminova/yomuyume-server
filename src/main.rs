@@ -16,12 +16,12 @@ use routes::{
         delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
         post_delete, post_modify, post_reset, post_verify, put_bookmark, put_favorite,
     },
-    utils::{get_status, get_tags, post_status},
+    utils::{get_scanning_progress, get_status, get_tags, post_status},
 };
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
 use utoipa::OpenApi;
@@ -38,6 +38,8 @@ mod routes;
 pub struct AppState {
     db: DatabaseConnection,
     env: Config,
+    scanning_complete: Mutex<bool>,
+    scanning_progress: Mutex<f64>,
 }
 
 #[tokio::main]
@@ -78,6 +80,8 @@ async fn main() -> Result<(), DbErr> {
     let app_state = Arc::new(AppState {
         db,
         env: config.clone(),
+        scanning_complete: Mutex::new(false),
+        scanning_progress: Mutex::new(0.0),
     });
 
     let auth_routes = Router::new()
@@ -89,8 +93,9 @@ async fn main() -> Result<(), DbErr> {
         );
 
     let utils_routes = Router::new()
-        .route("/status", get(get_status).post(post_status))
-        .route("/tags", get(get_tags).layer(apply(app_state.clone(), auth)));
+        .route("/tags", get(get_tags))
+        .route("/scanning_progress", get(get_scanning_progress))
+        .layer(apply(app_state.clone(), auth));
 
     let user_routes = Router::new()
         .route("/check", get(get_check))
@@ -116,13 +121,17 @@ async fn main() -> Result<(), DbErr> {
         )
         .layer(apply(app_state.clone(), auth));
 
+    let open_routes = Router::new()
+        .route("/user/reset/:email", get(get_reset))
+        .route("/utils/status", get(get_status).post(post_status));
+
     let app = Router::new()
         .nest("/api/auth", auth_routes)
         .nest("/api/index", index_routes)
         .nest("/api/user", user_routes)
         .nest("/api/utils", utils_routes)
         .nest("/api/file", file_routes)
-        .route("/api/user/reset/:email", get(get_reset))
+        .nest("/api", open_routes)
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())

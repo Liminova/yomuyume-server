@@ -160,8 +160,16 @@ impl Scanner {
         /* #endregion */
 
         /* handle titles */
-        for title in scan_category(&category.path).await {
+        let titles = scan_category(&category.path).await;
+        let titles_count = titles.len();
+        let mut processed = 0;
+        for title in titles {
             let _ = self.handle_title(&title, category_id.clone()).await;
+
+            processed += 1;
+            let progress = processed as f64 / titles_count as f64;
+            let mut scanning_progress = self.app_state.scanning_progress.lock().await;
+            *scanning_progress = progress;
         }
 
         /* cleanup */

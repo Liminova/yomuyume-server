@@ -8,10 +8,7 @@ use murmur3::murmur3_x64_128 as murmur3_128;
 #[cfg(target_pointer_width = "32")]
 use murmur3::murmur3_x86_128 as murmur3_128;
 use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-};
+use std::{fs::File, path::PathBuf};
 use tracing::{debug, error, info};
 use uuid::Uuid;
 use zip::ZipArchive;
@@ -50,10 +47,16 @@ impl Scanner {
         /* #endregion */
 
         /* #region - check if title exist; gen uuid if needed */
-        let title_hash_current = Self::hash(&title.path).await.map_err(|e| {
-            error!("error hashing: {}", e);
-            e
-        })?;
+        let title_hash_current = {
+            let content = tokio::fs::read(&title.path).await?;
+            match murmur3_128(&mut &content[..], 0) {
+                Ok(hash) => hash.to_string(),
+                Err(e) => {
+                    error!("error hashing: {}", e);
+                    return Err(e.into());
+                }
+            }
+        };
         let mut title_path_exist_in_db = false;
         let mut title_id = String::new();
 
@@ -380,14 +383,6 @@ impl Scanner {
             .await?;
 
         Ok(())
-    }
-
-    async fn hash(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
-        let content = tokio::fs::read(path).await?;
-        match murmur3_128(&mut &content[..], 0) {
-            Ok(hash) => Ok(hash.to_string()),
-            Err(e) => Err(e.into()),
-        }
     }
 
     async fn update_thumbnail(
