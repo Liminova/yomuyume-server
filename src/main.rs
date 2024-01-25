@@ -35,6 +35,7 @@ mod migrator;
 mod models;
 mod routes;
 
+#[derive(Debug)]
 pub struct AppState {
     db: DatabaseConnection,
     env: Config,
@@ -149,7 +150,7 @@ async fn main() -> Result<(), DbErr> {
     });
 
     let scanner_handle = tokio::spawn(async move {
-        let instance = livescan::Scanner::default(app_state.clone());
+        let instance = livescan::Scanner::new(app_state.clone());
         instance.await.run().await.unwrap();
     });
 
