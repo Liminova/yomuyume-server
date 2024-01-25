@@ -1,7 +1,6 @@
-use super::{build_err_resp, check_pass};
 use crate::{
     models::prelude::*,
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, check_pass, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
@@ -11,13 +10,14 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
-pub struct ModifyRequestBody {
+pub struct ModifyRequest {
     pub username: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,
     pub new_password: Option<String>,
 }
 
+/// Modify user information.
 #[utoipa::path(post, path = "/api/user/modify", responses(
     (status = 200, description = "Modify user successful."),
     (status = 400, description = "Bad request.", body = ErrorResponse),
@@ -27,7 +27,7 @@ pub struct ModifyRequestBody {
 pub async fn post_modify(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-    Json(body): Json<ModifyRequestBody>,
+    Json(body): Json<ModifyRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let password_in_db = user.password.clone();
     let is_verified = user.is_verified;

@@ -1,16 +1,17 @@
-use super::{build_err_resp, sendmail};
+use super::sendmail;
 use crate::{
     models::{
         auth::{TokenClaims, TokenClaimsPurpose},
         prelude::*,
     },
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use sea_orm::{ActiveModelTrait, Set};
 use std::sync::Arc;
 
+/// Send a verification email to the user's email address.
 #[utoipa::path(get, path = "/api/user/verify", responses(
     (status = 200, description = "Verification email sent."),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
@@ -78,8 +79,7 @@ pub async fn get_verify(
     }
 }
 
-/// Verify a user's account with the token sent to their email
-/// get sent to their email by this same route using a GET request.
+/// The user provides the token received by email.
 #[utoipa::path(post, path = "/api/user/verify", responses(
     (status = 200, description = "Account verification successful."),
     (status = 500, description = "Internal server error.", body = ErrorResponse),

@@ -1,5 +1,4 @@
-use super::build_resp;
-use crate::constants::version::get_version;
+use crate::{constants::version::get_version, routes::build_resp};
 use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};

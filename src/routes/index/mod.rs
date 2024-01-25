@@ -2,21 +2,18 @@ mod get_categories;
 mod get_title;
 mod post_filter;
 
-use super::{build_err_resp, build_resp};
 use crate::{
     constants::{blurhash_dimension_cap, ratio_percision},
     models::prelude::*,
+    routes::build_err_resp,
 };
 use axum::http::StatusCode;
 
-pub use get_categories::{get_categories, CategoriesResponseBody};
-pub use get_title::{get_title, TitleResponseBody};
-pub use post_filter::{post_filter, FilterRequest, FilterResponseBody, FilterTitleResponseBody};
-
-pub use get_categories::__path_get_categories;
-pub use get_title::__path_get_title;
-pub use post_filter::__path_post_filter;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
+
+pub use get_categories::*;
+pub use get_title::*;
+pub use post_filter::*;
 
 pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
     let pages = Pages::find()

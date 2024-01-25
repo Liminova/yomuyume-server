@@ -1,16 +1,15 @@
-use super::{build_err_resp, build_resp};
 use crate::{
     models::prelude::*,
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sea_orm::EntityTrait;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Debug, ToSchema)]
 pub struct TagsMapResponseBody {
     pub tags: Vec<(u32, String)>,
 }

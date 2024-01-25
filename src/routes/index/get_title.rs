@@ -1,8 +1,8 @@
-use super::{
-    super::{ApiResponse, ErrorResponseBody},
-    build_err_resp, build_resp,
+use crate::{
+    models::prelude::*,
+    routes::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody},
+    AppState,
 };
-use crate::{models::prelude::*, AppState};
 use axum::{
     extract::{Path, State},
     http::StatusCode,

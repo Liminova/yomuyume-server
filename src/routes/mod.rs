@@ -5,21 +5,10 @@ pub mod middlewares;
 pub mod user;
 pub mod utils;
 
-pub use self::{
-    auth::{LoginRequest, LoginResponseBody, RegisterRequest},
-    index::{
-        CategoriesResponseBody, FilterRequest, FilterResponseBody, FilterTitleResponseBody,
-        TitleResponseBody,
-    },
-    user::{DeleteRequestBody, ModifyRequestBody, ResetRequestBody},
-    utils::{StatusRequest, StatusResponseBody, TagsMapResponseBody},
-};
+pub use self::{auth::*, index::*, user::*, utils::*};
 pub use middlewares::auth::auth;
 
-use crate::models::{
-    categories::Model as Category, pages::Model as Page, titles::Model as Title,
-    users::Model as User,
-};
+use crate::models::categories::Model as Categories;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
@@ -33,13 +22,21 @@ pub struct ErrorResponseBody {
 
 #[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 #[aliases(
-    CategoriesResponse = ApiResponse<CategoriesResponseBody>,
-    ErrorResponse = ApiResponse<ErrorResponseBody>,
-    FilterResponse = ApiResponse<FilterResponseBody>,
+    // Auth
     LoginResponse = ApiResponse<LoginResponseBody>,
+
+    // User
+    CategoriesResponse = ApiResponse<CategoriesResponseBody>,
+    TitleResponse = ApiResponse<TitleResponseBody>,
+    FilterResponse = ApiResponse<FilterResponseBody>,
+
+    // Utils
     StatusResponse = ApiResponse<StatusResponseBody>,
     TagsMapResponse = ApiResponse<TagsMapResponseBody>,
-    TitleResponse = ApiResponse<TitleResponseBody>,
+    ScanningProgressResponse = ApiResponse<ScanningProgressResponseBody>,
+
+    // Other
+    ErrorResponse = ApiResponse<ErrorResponseBody>,
 )]
 pub struct ApiResponse<T> {
     /// A description of the response status.
@@ -58,7 +55,7 @@ pub struct ApiResponse<T> {
     tags(
         (
             name = "auth",
-            description = "Login, register, logout."
+            description = "login, register, logout."
         ),
         (
             name = "index",
@@ -70,7 +67,7 @@ pub struct ApiResponse<T> {
         ),
         (
             name = "utils",
-            description = "Getting server status, item/category id-name map"
+            description = "getting server status, item/category id-name map"
         ),
         (
             name = "file",
@@ -81,6 +78,7 @@ pub struct ApiResponse<T> {
         auth::post_login,
         auth::post_register,
         auth::get_logout,
+
         user::delete_bookmark,
         user::delete_favorite,
         user::get_check,
@@ -93,43 +91,50 @@ pub struct ApiResponse<T> {
         user::post_verify,
         user::put_bookmark,
         user::put_favorite,
+
         index::get_categories,
         index::post_filter,
         index::get_title,
+
         utils::get_status,
         utils::post_status,
         utils::get_tags,
+        utils::get_scanning_progress,
+
         file::get_page,
         file::get_thumbnail,
         file::head_thumbnail,
     ),
     components(schemas(
-        CategoriesResponse,
+        // Note: no need to declare non-Body structs, as long as they are declared in the aliases macro.
+
+        // Auth
+        LoginRequest,
+        LoginResponseBody,
+        RegisterRequest,
+
+        // User
+        DeleteRequest,
+        ModifyRequest,
+        ResetRequest,
+
+        // Index
+        Categories,
         CategoriesResponseBody,
-        Category,
-        DeleteRequestBody,
-        ErrorResponse,
-        ErrorResponseBody,
+        TitleResponseBody,
         FilterRequest,
-        FilterResponse,
         FilterResponseBody,
         FilterTitleResponseBody,
-        LoginRequest,
-        LoginResponse,
-        LoginResponseBody,
-        ModifyRequestBody,
-        Page,
-        RegisterRequest,
-        ResetRequestBody,
+
+        // Utils
         StatusRequest,
-        StatusResponse,
         StatusResponseBody,
-        TagsMapResponse,
         TagsMapResponseBody,
-        Title,
-        TitleResponse,
         TitleResponseBody,
-        User,
+        ScanningProgressResponseBody,
+
+        // Other
+        ErrorResponseBody,
     ))
 )]
 pub struct ApiDoc;

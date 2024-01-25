@@ -1,10 +1,10 @@
-use super::{build_err_resp, check_pass, sendmail};
+use super::{check_pass, sendmail};
 use crate::{
     models::{
         auth::{TokenClaims, TokenClaimsPurpose},
         prelude::*,
     },
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
@@ -14,7 +14,7 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct DeleteRequestBody {
+pub struct DeleteRequest {
     pub password: String,
 }
 
@@ -94,7 +94,7 @@ pub async fn get_delete(
 pub async fn post_delete(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-    Json(query): Json<DeleteRequestBody>,
+    Json(query): Json<DeleteRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     if query.password.is_empty() {
         return Err(build_err_resp(

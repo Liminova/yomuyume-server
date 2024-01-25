@@ -1,10 +1,10 @@
-use super::{build_err_resp, sendmail};
+use super::sendmail;
 use crate::{
     models::{
         auth::{TokenClaims, TokenClaimsPurpose},
         prelude::*,
     },
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -21,13 +21,11 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct ResetRequestBody {
+pub struct ResetRequest {
     pub password: String,
 }
 
-/// Send a request to change the password when the user has forgotten it.
-///
-/// The user will receive an email with a token to confirm the modification.
+/// Send an email to the user with a token to reset the password.
 #[utoipa::path(get, path = "/api/user/reset/{email}", responses(
     (status = 200, description = "Token sent to user's email."),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
@@ -115,9 +113,7 @@ pub async fn get_reset(
     }
 }
 
-/// Confirm the password modification.
-///
-/// The user will make a request with the token received by email.
+/// The user provides the token received by email to confirm the password change.
 #[utoipa::path(post, path = "/api/user/reset", responses(
     (status = 200, description = "Password reset successful."),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
@@ -127,7 +123,7 @@ pub async fn post_reset(
     State(data): State<Arc<AppState>>,
     Extension(purpose): Extension<TokenClaimsPurpose>,
     Extension(user): Extension<users::Model>,
-    Json(query): Json<ResetRequestBody>,
+    Json(query): Json<ResetRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     if purpose != TokenClaimsPurpose::ResetPassword {
         return Err(build_err_resp(

@@ -4,8 +4,8 @@ use axum::{
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
-/// Reset all the cookies to log the user out.
-#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.", body = ErrorResponse)))]
+/// Reset all the cookies on the client side.
+#[utoipa::path(get, path = "/api/auth/logout", responses((status = 200, description = "Logout successful.")))]
 pub async fn get_logout() -> impl IntoResponse {
     let cookie = Cookie::build(("token", ""))
         .path("/")

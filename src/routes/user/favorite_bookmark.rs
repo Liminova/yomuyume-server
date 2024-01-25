@@ -1,7 +1,6 @@
-use super::build_err_resp;
 use crate::{
     models::prelude::*,
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{

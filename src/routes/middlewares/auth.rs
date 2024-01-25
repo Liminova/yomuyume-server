@@ -1,7 +1,6 @@
-use super::super::build_err_resp;
 use crate::{
     models::{auth::TokenClaims, prelude::*},
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{ApiResponse, ErrorResponseBody, build_err_resp},
     AppState,
 };
 use axum::{

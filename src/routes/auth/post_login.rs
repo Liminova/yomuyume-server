@@ -1,7 +1,6 @@
-use super::{build_err_resp, check_pass};
 use crate::{
     models::{auth::TokenClaims, prelude::*},
-    routes::{ApiResponse, ErrorResponseBody},
+    routes::{build_err_resp, check_pass, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{
@@ -28,7 +27,7 @@ pub struct LoginResponseBody {
     pub token: String,
 }
 
-/// Login to the server.
+/// Login with username and password and get the JWT token.
 #[utoipa::path(post, path = "/api/auth/login", responses(
     (status = 200, description = "Login successful.", body = LoginResponse),
     (status = 500, description = "Internal server error.", body = ErrorResponse),
