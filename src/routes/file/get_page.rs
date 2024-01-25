@@ -17,8 +17,8 @@ use crate::{
 
 #[utoipa::path(get, path = "/api/file/page/{page_id}", responses(
     (status = 200, description = "Fetch page successful."),
-    (status = 401, description = "Unauthorized", body = utoipa::error::ErrorResponse),
-    (status = 404, description = "Page not found", body = utoipa::error::ErrorResponse)
+    (status = 401, description = "Unauthorized", body = ErrorResponse),
+    (status = 404, description = "Page not found", body = ErrorResponse)
 ))]
 pub async fn get_page(
     State(data): State<Arc<AppState>>,

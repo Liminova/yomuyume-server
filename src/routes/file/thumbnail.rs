@@ -17,8 +17,8 @@ use crate::{
 
 #[utoipa::path(get, path = "/api/file/thumbnail/{thumbnail_id}", responses(
     (status = 200, description = "Fetch thumbnail successful."),
-    (status = 401, description = "Unauthorized", body = utoipa::error::ErrorResponse),
-    (status = 404, description = "Page not found", body = utoipa::error::ErrorResponse)
+    (status = 401, description = "Unauthorized", body = ErrorResponse),
+    (status = 404, description = "Page not found", body = ErrorResponse)
 ))]
 pub async fn get_thumbnail(
     State(data): State<Arc<AppState>>,
