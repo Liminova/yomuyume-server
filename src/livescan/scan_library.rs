@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use tracing::warn;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub struct ScannedCategory {
     pub path: PathBuf,
     pub name: String,
