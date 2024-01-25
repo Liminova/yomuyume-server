@@ -1,6 +1,6 @@
 use crate::{
     models::{auth::TokenClaims, prelude::*},
-    routes::{ApiResponse, ErrorResponseBody, build_err_resp},
+    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
     AppState,
 };
 use axum::{
