@@ -59,7 +59,7 @@ impl Scanner {
         debug!("- name (will use): {:?}", &category_name);
 
         /* #region - insert/update category info to DB */
-        let category_exist_in_db = categories::Entity::find_by_id(&category_id)
+        let category_exist_in_db = Categories::find_by_id(&category_id)
             .one(&self.app_state.db)
             .await
             .map_err(|e| {

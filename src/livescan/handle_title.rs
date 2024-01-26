@@ -296,7 +296,7 @@ impl Scanner {
                 break 'scoped;
             }
             'iteration: for tag in tags {
-                let tag_model = match tags::Entity::find()
+                let tag_model = match Tags::find()
                     .filter(tags::Column::Name.eq(&tag))
                     .one(&self.app_state.db)
                     .await
