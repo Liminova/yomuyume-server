@@ -110,6 +110,7 @@ pub struct ApiResponse<T> {
 
         // Auth
         LoginRequest,
+        LoginResponse,
         LoginResponseBody,
         RegisterRequest,
 
@@ -120,20 +121,28 @@ pub struct ApiResponse<T> {
 
         // Index
         Categories,
+        CategoriesResponse,
         CategoriesResponseBody,
+        TitleResponse,
         TitleResponseBody,
         FilterRequest,
+        FilterResponse,
         FilterResponseBody,
         FilterTitleResponseBody,
 
         // Utils
         StatusRequest,
+        StatusResponse,
         StatusResponseBody,
+        TagsMapResponse,
         TagsMapResponseBody,
+        TitleResponse,
         TitleResponseBody,
+        ScanningProgressResponse,
         ScanningProgressResponseBody,
 
         // Other
+        ErrorResponse,
         ErrorResponseBody,
     ))
 )]
