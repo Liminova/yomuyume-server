@@ -2,6 +2,7 @@ mod delete;
 mod favorite_bookmark;
 mod get_check;
 mod modify;
+mod put_progress;
 mod reset;
 mod verify;
 
@@ -19,6 +20,7 @@ pub use delete::*;
 pub use favorite_bookmark::*;
 pub use get_check::*;
 pub use modify::*;
+pub use put_progress::*;
 pub use reset::*;
 pub use verify::*;
 

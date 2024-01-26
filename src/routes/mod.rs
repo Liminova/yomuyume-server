@@ -5,7 +5,7 @@ pub mod middlewares;
 pub mod user;
 pub mod utils;
 
-pub use self::{auth::*, index::*, user::*, utils::*};
+pub use self::{auth::*, file::*, index::*, user::*, utils::*};
 pub use middlewares::auth::auth;
 
 use crate::models::categories::Model as Categories;
@@ -91,6 +91,7 @@ pub struct ApiResponse<T> {
         user::post_verify,
         user::put_bookmark,
         user::put_favorite,
+        user::put_progress,
 
         index::get_categories,
         index::post_filter,

@@ -97,6 +97,7 @@ async fn main() -> Result<(), DbErr> {
         .route("/modify", post(post_modify))
         .route("/bookmark/:id", put(put_bookmark).delete(delete_bookmark))
         .route("/favorite/:id", put(put_favorite).delete(delete_favorite))
+        .route("/progress/:titleId/:page", put(put_progress))
         .layer(apply(app_state.clone(), auth));
 
     let index_routes = Router::new()
