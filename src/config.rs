@@ -10,16 +10,18 @@ pub struct Config {
     pub jwt_maxage: chrono::Duration,
 
     pub smtp_host: Option<String>,
-    pub smtp_port: u16,
-    pub smtp_username: String,
-    pub smtp_password: String,
-    pub smtp_from_email: String,
-    pub smtp_from_name: String,
+    pub smtp_port: Option<usize>,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+    pub smtp_from_email: Option<String>,
+    pub smtp_from_name: Option<String>,
 
     pub ffmpeg_path: Option<String>,
     pub djxl_path: Option<String>,
     pub ffmpeg_log_path: Option<String>,
     pub temp_path: String,
+
+    pub sentence_embedding_model_path: Option<String>,
 }
 
 impl Config {
@@ -30,7 +32,7 @@ impl Config {
         }
     }
 
-    fn may_get(key: &str, _default: Option<&str>) -> Option<String> {
+    fn may_get(key: &str) -> Option<String> {
         std::env::var(key).ok()
     }
 
@@ -48,19 +50,19 @@ impl Config {
             .parse()
             .unwrap_or(30);
 
-        let smtp_host = Self::may_get("SMTP_HOST", None);
-        let smtp_port = Self::get_env("SMTP_PORT", Some("587"))
-            .parse()
-            .unwrap_or(587);
-        let smtp_username = Self::get_env("SMTP_USERNAME", Some(""));
-        let smtp_password = Self::get_env("SMTP_PASSWORD", Some(""));
-        let smtp_from_email = Self::get_env("SMTP_FROM_EMAIL", Some(""));
-        let smtp_from_name = Self::get_env("SMTP_FROM_NAME", Some(""));
+        let smtp_host = Self::may_get("SMTP_HOST");
+        let smtp_port = Self::may_get("SMTP_PORT").map(|port| port.parse::<usize>().unwrap_or(587));
+        let smtp_username = Self::may_get("SMTP_USERNAME");
+        let smtp_password = Self::may_get("SMTP_PASSWORD");
+        let smtp_from_email = Self::may_get("SMTP_FROM_EMAIL");
+        let smtp_from_name = Self::may_get("SMTP_FROM_NAME");
 
-        let ffmpeg_path = Self::may_get("FFMPEG_PATH", None);
-        let djxl_path = Self::may_get("DJXL_PATH", None);
-        let ffmpeg_log_path = Self::may_get("FFMPEG_LOG_PATH", None);
-        let temp_dir = Self::get_env("TEMP_DIR", Some("/tmp"));
+        let ffmpeg_path = Self::may_get("FFMPEG_PATH");
+        let djxl_path = Self::may_get("DJXL_PATH");
+        let ffmpeg_log_path = Self::may_get("FFMPEG_LOG_PATH");
+        let temp_path = Self::get_env("TEMP_DIR", Some("/tmp"));
+
+        let sentence_embedding_model_path = Self::may_get("SENTENCE_EMBEDDING_MODEL_PATH");
 
         Self {
             library_path,
@@ -82,7 +84,9 @@ impl Config {
             ffmpeg_path,
             djxl_path,
             ffmpeg_log_path,
-            temp_path: temp_dir,
+            temp_path,
+
+            sentence_embedding_model_path,
         }
     }
 }
