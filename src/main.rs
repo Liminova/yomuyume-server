@@ -8,16 +8,7 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
-use routes::{
-    auth::{get_logout, post_login, post_register},
-    file::{get_page, get_thumbnail, head_thumbnail},
-    index::{get_categories, get_title, post_filter},
-    user::{
-        delete_bookmark, delete_favorite, get_check, get_delete, get_reset, get_verify,
-        post_delete, post_modify, post_reset, post_verify, put_bookmark, put_favorite,
-    },
-    utils::{get_scanning_progress, get_status, get_tags, post_status},
-};
+use routes::*;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
