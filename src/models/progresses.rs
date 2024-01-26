@@ -5,12 +5,12 @@ use utoipa::ToSchema;
 #[schema(as = Progress)]
 #[sea_orm(table_name = "progresses")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: String,
+    #[sea_orm(primary_key)]
+    pub id: u64,
     pub user_id: String,
     pub title_id: String,
     pub last_read_at: String,
-    pub page: u32,
+    pub page: u64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
