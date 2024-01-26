@@ -47,7 +47,7 @@ pub struct TitleResponseBody {
     pub bookmarks: Option<u64>,
     pub is_favorite: Option<bool>,
     pub is_bookmark: Option<bool>,
-    pub page_read: Option<u32>,
+    pub page_read: Option<u64>,
     pub date_added: String,
     pub date_updated: String,
 }

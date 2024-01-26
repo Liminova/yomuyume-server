@@ -15,7 +15,7 @@ pub use get_categories::*;
 pub use get_title::*;
 pub use post_filter::*;
 
-pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
+pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u64 {
     let pages = Pages::find()
         .filter(pages::Column::TitleId.contains(title_id))
         .all(db)
@@ -30,11 +30,11 @@ pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> u32 {
 
     match pages.is_empty() {
         true => 0,
-        false => pages.len() as u32,
+        false => pages.len() as u64,
     }
 }
 
-pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &str) -> Option<u32> {
+pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &str) -> Option<u64> {
     let progresses = Progresses::find()
         .filter(
             Condition::all()
@@ -57,7 +57,7 @@ pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &s
     }
 }
 
-pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Option<u32> {
+pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Option<u64> {
     let favorites = Favorites::find()
         .filter(favorites::Column::TitleId.contains(title_id))
         .all(db)
@@ -72,7 +72,7 @@ pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Opt
 
     match favorites.is_empty() {
         true => None,
-        false => Some(favorites.len() as u32),
+        false => Some(favorites.len() as u64),
     }
 }
 

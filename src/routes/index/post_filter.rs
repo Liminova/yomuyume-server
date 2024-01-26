@@ -41,9 +41,9 @@ pub struct FilterTitleResponseBody {
     author: Option<String>,
     categories_id: String,
     release: Option<String>,
-    favorite_count: Option<u32>,
-    page_count: u32,
-    page_read: Option<u32>,
+    favorite_count: Option<u64>,
+    page_count: u64,
+    page_read: Option<u64>,
 
     /// Thumbnail
     blurhash: String,
