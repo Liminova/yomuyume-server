@@ -6,11 +6,11 @@ use utoipa::ToSchema;
 #[sea_orm(table_name = "progresses")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: u64,
+    pub id: i64,
     pub user_id: String,
     pub title_id: String,
     pub last_read_at: String,
-    pub page: u64,
+    pub page: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

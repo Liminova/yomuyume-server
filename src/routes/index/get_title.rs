@@ -43,11 +43,11 @@ pub struct TitleResponseBody {
     pub thumbnail: ResponseThumbnail,
     pub tag_ids: Vec<u32>,
     pub pages: Vec<ResponsePage>,
-    pub favorites: Option<u64>,
-    pub bookmarks: Option<u64>,
+    pub favorites: Option<i64>,
+    pub bookmarks: Option<i64>,
     pub is_favorite: Option<bool>,
     pub is_bookmark: Option<bool>,
-    pub page_read: Option<u64>,
+    pub page_read: Option<i64>,
     pub date_added: String,
     pub date_updated: String,
 }
@@ -180,7 +180,7 @@ pub async fn get_title(
             )
         })? {
         0 => None,
-        n => Some(n),
+        n => Some(n as i64),
     };
 
     let bookmarks = match Bookmarks::find()
@@ -194,7 +194,7 @@ pub async fn get_title(
             )
         })? {
         0 => None,
-        n => Some(n),
+        n => Some(n as i64),
     };
 
     let tag_ids = TitlesTags::find()

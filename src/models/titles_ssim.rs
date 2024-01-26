@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 #[sea_orm(table_name = "titles_ssim")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: u64, // Auto increment, don't care
+    pub id: i64, // Auto increment, don't care
     pub title_id_a: String,
     pub title_id_b: String,
     pub ssim: u16, // Normalized to 0-1000

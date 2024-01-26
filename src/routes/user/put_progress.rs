@@ -7,7 +7,7 @@ use axum::{
     Extension, Json,
 };
 use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set,
 };
 use tracing::warn;
 
@@ -17,27 +17,24 @@ use crate::{
     AppState,
 };
 
-#[utoipa::path(put, path = "/api/user/progress/:titleId/:page", responses(
+#[utoipa::path(put, path = "/api/user/progress/:title_id/:page", responses(
     (status = 200, description = "Set progress successfully."),
     (status = 400, description = "Bad request.", body = ErrorResponse),
 ))]
 pub async fn put_progress(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-    Path((id, page)): Path<(String, u64)>,
+    Path((title_id, page)): Path<(String, i64)>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
     let progress_model = Progresses::find()
-        .filter(
-            Condition::all()
-                .add(progresses::Column::TitleId.eq(id.clone()))
-                .add(progresses::Column::UserId.eq(user.id.clone())),
-        )
+        .filter(progresses::Column::TitleId.eq(&title_id))
+        .filter(progresses::Column::UserId.eq(&user.id))
         .one(&data.db)
         .await
         .map_err(|e| {
             warn!(
                 "find progress failed | title {} | user {}: {}",
-                id, user.id, e
+                title_id, user.id, e
             );
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -53,19 +50,21 @@ pub async fn put_progress(
         active_model.update(&data.db).await.map_err(|e| {
             warn!(
                 "update progress failed | title {} | user {}: {}",
-                id, user.id, e
+                title_id, user.id, e
             );
             build_err_resp(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("error updating progress: {}", e),
             )
         })?;
+
+        return Ok(StatusCode::OK);
     }
 
     progresses::ActiveModel {
         id: NotSet,
         user_id: Set(user.id.clone()),
-        title_id: Set(id.clone()),
+        title_id: Set(title_id.clone()),
         last_read_at: Set(chrono::Utc::now().to_rfc3339()),
         page: Set(page),
     }
@@ -74,7 +73,7 @@ pub async fn put_progress(
     .map_err(|e| {
         warn!(
             "insert progress failed | title {} | user {}: {}",
-            id, user.id, e
+            title_id, user.id, e
         );
         build_err_resp(
             StatusCode::INTERNAL_SERVER_ERROR,
