@@ -29,16 +29,16 @@ impl MigrationTrait for Migration {
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-progress-user_id")
-                    .from(Users::Table, Users::Id)
-                    .to(Progresses::Table, Progresses::UserId)
+                    .from(Progresses::Table, Progresses::UserId)
+                    .to(Users::Table, Users::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .col(ColumnDef::new(Progresses::TitleId).uuid().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-progress-title_id")
-                    .from(Titles::Table, Titles::Id)
-                    .to(Progresses::Table, Progresses::TitleId)
+                    .from(Progresses::Table, Progresses::TitleId)
+                    .to(Titles::Table, Titles::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
             .col(
