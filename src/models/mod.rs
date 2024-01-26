@@ -8,6 +8,7 @@ pub mod progresses;
 pub mod tags;
 pub mod thumbnails;
 pub mod titles;
+pub mod titles_ssim;
 pub mod titles_tags;
 pub mod users;
 

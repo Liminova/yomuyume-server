@@ -1,8 +1,8 @@
 use crate::models::prelude::*;
 use rayon::prelude::*;
 use rust_bert::pipelines::sentence_embeddings::SentenceEmbeddingsBuilder;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
-use tracing::{debug, error, info};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use tracing::{debug, error};
 
 fn cosine_similarity(vec1: &[f32], vec2: &[f32]) -> f32 {
     let dot_product: f32 = vec1.iter().zip(vec2).map(|(&x1, &x2)| x1 * x2).sum();
@@ -98,14 +98,14 @@ pub async fn title_ssim_score(
     }
     debug!("input data prepared");
 
-    // Encode data
+    // Map to a vec of string to feed to the model
     let mapped_input_data = input_data
         .clone()
         .into_iter()
         .map(|input| input.input_soup.clone())
         .collect::<Vec<_>>();
 
-    let vectors_result = tokio::task::spawn_blocking(move || {
+    let vectors_result: Result<Vec<Vec<f32>>, String> = tokio::task::spawn_blocking(move || {
         let model = match SentenceEmbeddingsBuilder::local(model_dir)
             .with_device(tch::Device::cuda_if_available())
             .create_model()
@@ -150,12 +150,17 @@ pub async fn title_ssim_score(
         .collect();
     debug!("similarity calculated");
 
-    results.into_iter().for_each(|result| {
-        info!(
-            "{} ~ {}: {}",
-            result.title_id_a, result.title_id_b, result.similarity
-        )
-    });
+    let active_models = results
+        .into_iter()
+        .map(|result| titles_ssim::ActiveModel {
+            title_id_a: Set(result.title_id_a),
+            title_id_b: Set(result.title_id_b),
+            ssim: Set((result.similarity * 1000.0) as u16),
+            ..Default::default()
+        })
+        .collect::<Vec<_>>();
+
+    TitlesSsim::insert_many(active_models).exec(db).await?;
 
     Ok(())
 }
