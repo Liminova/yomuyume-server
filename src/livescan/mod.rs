@@ -4,13 +4,13 @@ mod handle_title;
 mod scan_category;
 mod scan_library;
 mod thumbnail_finder;
-mod title_relevance_score;
+mod title_ssim_score;
 
 use self::{
     blurhash::Blurhash,
     scan_library::{scan_library, ScannedCategory},
 };
-use crate::{livescan::title_relevance_score::title_ssim_score, models::prelude::*, AppState};
+use crate::{livescan::title_ssim_score::title_ssim_score, models::prelude::*, AppState};
 use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter};
 use std::{path::PathBuf, sync::Arc};
 
