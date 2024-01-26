@@ -48,6 +48,42 @@ fn build_ssim_jobs(vectors: Vec<Vec<f32>>, input_data: Vec<InputData>) -> Vec<Ss
     ssim_calculation_job
 }
 
+async fn embedding(data: &[InputData], model_dir: String) -> Result<Vec<Vec<f32>>, String> {
+    let mapped_input_data = data
+        .to_owned()
+        .clone()
+        .into_iter()
+        .map(|input| input.input_soup.clone())
+        .collect::<Vec<_>>();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let model = match SentenceEmbeddingsBuilder::local(model_dir)
+            .with_device(tch::Device::cuda_if_available())
+            .create_model()
+        {
+            Ok(model) => model,
+            Err(e) => {
+                error!("cannot create model: {}", e);
+                return Err(e.to_string());
+            }
+        };
+        match model.encode(&mapped_input_data) {
+            Ok(vectors) => Ok(vectors),
+            Err(e) => {
+                error!("cannot encode input: {}", e);
+                Err(e.to_string())
+            }
+        }
+    })
+    .await;
+
+    match result {
+        Ok(Ok(vectors)) => Ok(vectors),
+        Ok(Err(e)) => Err(e),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 pub async fn title_ssim_score(
     db: &DatabaseConnection,
     model_dir: String,
@@ -98,42 +134,8 @@ pub async fn title_ssim_score(
     }
     debug!("input data prepared");
 
-    // Map to a vec of string to feed to the model
-    let mapped_input_data = input_data
-        .clone()
-        .into_iter()
-        .map(|input| input.input_soup.clone())
-        .collect::<Vec<_>>();
-
-    let vectors_result: Result<Vec<Vec<f32>>, String> = tokio::task::spawn_blocking(move || {
-        let model = match SentenceEmbeddingsBuilder::local(model_dir)
-            .with_device(tch::Device::cuda_if_available())
-            .create_model()
-        {
-            Ok(model) => model,
-            Err(e) => {
-                error!("cannot create model: {}", e);
-                return Err(e.to_string());
-            }
-        };
-        match model.encode(&mapped_input_data) {
-            Ok(vectors) => Ok(vectors),
-            Err(e) => {
-                error!("cannot encode input: {}", e);
-                Err(e.to_string())
-            }
-        }
-    })
-    .await?;
+    let vectors = embedding(&input_data, model_dir).await?;
     debug!("input data encoded");
-
-    let vectors = match vectors_result {
-        Ok(vectors) => vectors,
-        Err(e) => {
-            error!("cannot encode input: {}", e);
-            return Err(e.into());
-        }
-    };
 
     // Calculate similarity
     let jobs = build_ssim_jobs(vectors, input_data);
@@ -150,6 +152,9 @@ pub async fn title_ssim_score(
         .collect();
     debug!("similarity calculated");
 
+    // Remove everything from table
+    TitlesSsim::delete_many().exec(db).await?;
+
     let active_models = results
         .into_iter()
         .map(|result| titles_ssim::ActiveModel {
@@ -159,7 +164,6 @@ pub async fn title_ssim_score(
             ..Default::default()
         })
         .collect::<Vec<_>>();
-
     TitlesSsim::insert_many(active_models).exec(db).await?;
 
     Ok(())
