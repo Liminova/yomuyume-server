@@ -6,9 +6,7 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set,
-};
+use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
 use tracing::warn;
 
 use crate::{

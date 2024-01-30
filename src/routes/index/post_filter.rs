@@ -1,5 +1,6 @@
 use super::{find_favorite_count, find_page_count, find_page_read};
 use crate::{
+    calculate_dimension,
     models::prelude::*,
     routes::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody},
     AppState,
@@ -248,7 +249,7 @@ pub async fn post_filter(
                 )
             })?;
 
-        let (width, height) = super::calculate_dimension(thumbnail_model.ratio);
+        let (width, height) = calculate_dimension(thumbnail_model.ratio);
 
         resp_data.push(FilterTitleResponseBody {
             id: title.id,

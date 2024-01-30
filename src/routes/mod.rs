@@ -8,7 +8,10 @@ pub mod utils;
 pub use self::{auth::*, file::*, index::*, user::*, utils::*};
 pub use middlewares::auth::auth;
 
-use crate::models::categories::Model as Categories;
+use crate::{
+    constants::{blurhash_dimension_cap, ratio_percision},
+    models::categories::Model as Categories,
+};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
@@ -34,6 +37,7 @@ pub struct ErrorResponseBody {
     StatusResponse = ApiResponse<StatusResponseBody>,
     TagsMapResponse = ApiResponse<TagsMapResponseBody>,
     ScanningProgressResponse = ApiResponse<ScanningProgressResponseBody>,
+    SsimEval = ApiResponse<SsimEvalBody>,
 
     // Other
     ErrorResponse = ApiResponse<ErrorResponseBody>,
@@ -101,6 +105,7 @@ pub struct ApiResponse<T> {
         utils::post_status,
         utils::get_tags,
         utils::get_scanning_progress,
+        utils::get_ssim_eval,
 
         file::get_page,
         file::get_thumbnail,
@@ -141,6 +146,8 @@ pub struct ApiResponse<T> {
         TitleResponseBody,
         ScanningProgressResponse,
         ScanningProgressResponseBody,
+        SsimEval,
+        SsimEvalBody,
 
         // Other
         ErrorResponse,
@@ -181,4 +188,17 @@ pub fn check_pass(real: &str, input: &String) -> bool {
             .map_or(false, |_| true),
         Err(_) => false,
     }
+}
+
+pub fn calculate_dimension(ratio: u32) -> (u32, u32) {
+    let max_dimension = blurhash_dimension_cap();
+    let ratio = ratio as f32 / ratio_percision() as f32;
+
+    let (width, height) = if ratio >= 1.0 {
+        (max_dimension, max_dimension / ratio) // Landscape
+    } else {
+        (max_dimension * ratio, max_dimension) // Portrait
+    };
+
+    (width as u32, height as u32)
 }

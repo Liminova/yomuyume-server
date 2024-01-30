@@ -211,7 +211,7 @@ pub async fn get_title(
         .map(|tag| tag.tag_id)
         .collect::<Vec<_>>();
 
-    let (width, height) = super::calculate_dimension(thumbnail.ratio);
+    let (width, height) = crate::calculate_dimension(thumbnail.ratio);
 
     let title = TitleResponseBody {
         category_id: title.category_id,
