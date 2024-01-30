@@ -4640,6 +4640,7 @@ dependencies = [
  "lettre",
  "murmur3",
  "notify",
+ "rand",
  "rand_core",
  "rayon",
  "rust-bert",
