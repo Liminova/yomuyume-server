@@ -101,21 +101,22 @@ pub async fn post_filter(
     }
 
     if let Some(tag_ids) = tag_ids {
+        let mut internal_cond = Condition::any();
         for tag_id in tag_ids {
-            let title_tag_has_tag_id = TitlesTags::find()
-                .filter(titles_tags::Column::TagId.eq(tag_id))
-                .all(&data.db)
-                .await
-                .map_err(|e| {
-                    build_err_resp(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Database error: {}", e),
-                    )
-                })?;
-
-            for entity in title_tag_has_tag_id {
-                condition = condition.add(titles::Column::Id.eq(entity.title_id));
-            }
+            internal_cond = internal_cond.add(titles_tags::Column::TagId.eq(tag_id));
+        }
+        let title_tag_has_tag_id = TitlesTags::find()
+            .filter(internal_cond)
+            .all(&data.db)
+            .await
+            .map_err(|e| {
+                build_err_resp(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Database error: {}", e),
+                )
+            })?;
+        for entity in title_tag_has_tag_id {
+            condition = condition.add(titles::Column::Id.eq(entity.title_id));
         }
     }
 
