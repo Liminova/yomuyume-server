@@ -296,14 +296,16 @@ impl Scanner {
                 break 'scoped;
             }
             'iteration: for tag in tags {
-                let tag_model = match Tags::find()
+                let tag_model = Tags::find()
                     .filter(tags::Column::Name.eq(&tag))
                     .one(&self.app_state.db)
                     .await
                     .map_err(|e| {
                         error!("error finding tag: {}", e);
                         e
-                    }) {
+                    });
+
+                let tag_model = match tag_model {
                     Ok(Some(tag_model)) => Some(tag_model),
                     Ok(None) => None,
                     Err(_) => continue 'iteration,
