@@ -2,28 +2,28 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     response::IntoResponse,
-    Extension, Json,
+    Extension,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
 use tracing::warn;
 
 use crate::{
     models::prelude::*,
-    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
+    routes::{ErrRsp, GenericRsp},
     AppState,
 };
 
 #[utoipa::path(put, path = "/api/user/progress/:title_id/:page", responses(
-    (status = 200, description = "Set progress successfully."),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
+    (status = 200, description = "Set progress successfully", body = GenericResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn put_progress(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Path((title_id, page)): Path<(String, i64)>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let progress_model = Progresses::find()
         .filter(progresses::Column::TitleId.eq(&title_id))
         .filter(progresses::Column::UserId.eq(&user.id))
@@ -34,10 +34,7 @@ pub async fn put_progress(
                 "find progress failed | title {} | user {}: {}",
                 title_id, user.id, e
             );
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("error finding progress for user: {}", e),
-            )
+            ErrRsp::internal(format!("Can't find progress: {}", e))
         })?;
 
     // Update if exist
@@ -50,13 +47,10 @@ pub async fn put_progress(
                 "update progress failed | title {} | user {}: {}",
                 title_id, user.id, e
             );
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("error updating progress: {}", e),
-            )
+            ErrRsp::internal(format!("Can't update progress: {}", e))
         })?;
 
-        return Ok(StatusCode::OK);
+        return Ok(GenericRsp::create("Progress updated."));
     }
 
     progresses::ActiveModel {
@@ -73,12 +67,9 @@ pub async fn put_progress(
             "insert progress failed | title {} | user {}: {}",
             title_id, user.id, e
         );
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("error inserting progress: {}", e),
-        )
+        ErrRsp::internal(format!("Can't insert progress: {}", e))
     })?;
 
     // just return the OK status
-    Ok(StatusCode::OK)
+    Ok(GenericRsp::create("Progress set."))
 }

@@ -109,10 +109,7 @@ async fn main() -> Result<(), DbErr> {
 
     let file_routes = Router::new()
         .route("/page/:page_id", get(get_page))
-        .route(
-            "/thumbnail/:thumbnail_id",
-            get(get_thumbnail).head(head_thumbnail),
-        )
+        .route("/thumbnail/:thumbnail_id", get(get_thumbnail))
         .layer(apply(app_state.clone(), auth));
 
     let open_routes = Router::new()

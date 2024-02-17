@@ -1,6 +1,6 @@
 use crate::{
     models::{auth::TokenClaims, prelude::*},
-    routes::{build_err_resp, check_pass, ApiResponse, ErrorResponseBody},
+    routes::{check_pass, ErrRsp},
     AppState,
 };
 use axum::{
@@ -29,32 +29,23 @@ pub struct LoginResponseBody {
 
 /// Login with username and password and get the JWT token.
 #[utoipa::path(post, path = "/api/auth/login", responses(
-    (status = 200, description = "Login successful.", body = LoginResponse),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
+    (status = 200, description = "Login successful", body = LoginResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
 ))]
 pub async fn post_login(
     State(data): State<Arc<AppState>>,
     query: Json<LoginRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let user: users::Model = Users::find()
         .filter(users::Column::Username.eq(&query.login))
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
-            )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid username or password."))?;
+        .map_err(ErrRsp::db)?
+        .ok_or_else(|| ErrRsp::bad_request("Invalid username or password."))?;
 
     if !check_pass(&user.password, &query.password) {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "Invalid username or password.",
-        ));
+        return Err(ErrRsp::bad_request("Invalid username or password."));
     }
 
     let now = chrono::Utc::now();
@@ -72,12 +63,7 @@ pub async fn post_login(
         &claims,
         &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
     )
-    .map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("JWT error: {}", e),
-        )
-    })?;
+    .map_err(|e| ErrRsp::internal(format!("JWT error: {}", e)))?;
 
     let cookie = Cookie::build(("token", token.to_owned()))
         .path("/")
@@ -88,9 +74,6 @@ pub async fn post_login(
     Ok((
         StatusCode::OK,
         [(header::SET_COOKIE, cookie.to_string())],
-        Json(ApiResponse {
-            description: String::from("Login successful."),
-            body: Some(LoginResponseBody { token }),
-        }),
+        Json(LoginResponseBody { token }),
     ))
 }

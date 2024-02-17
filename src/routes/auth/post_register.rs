@@ -1,6 +1,6 @@
 use crate::{
     models::prelude::*,
-    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
+    routes::{ErrRsp, GenericRsp},
     AppState,
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
@@ -20,31 +20,26 @@ pub struct RegisterRequest {
 
 /// Register a new user.
 #[utoipa::path(post, path = "/api/auth/register", responses(
-    (status = 200, description = "Registration successful."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
+    (status = 200, description = "Registration successful", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 409, description = "A conflict has occurred", body = ErrorResponseBody),
 ))]
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if !email_address::EmailAddress::is_valid(&query.email) {
-        return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid email."));
+        return Err(ErrRsp::bad_request("Invalid email."));
     }
 
     let email_exists = Users::find()
         .filter(users::Column::Email.eq(&query.email.to_string().to_ascii_lowercase()))
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to fetch user from database. Database error: {}", e),
-            )
-        })?;
+        .map_err(|e| ErrRsp::internal(format!("Can't fetch user from DB: {}", e)))?;
 
     if email_exists.is_some() {
-        return Err(build_err_resp(
+        return Err(ErrRsp::new(
             StatusCode::CONFLICT,
             "An user with this email already exists.",
         ));
@@ -57,8 +52,7 @@ pub async fn post_register(
     let has_special = password.chars().any(|c| c.is_ascii_punctuation());
     let has_valid_length = password.len() >= 8 && password.len() <= 100;
     if !(has_uppercase && has_lowercase && has_numeric && has_special && has_valid_length) {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
+        return Err(ErrRsp::bad_request(
             "Password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character.",
         ));
     }
@@ -66,12 +60,7 @@ pub async fn post_register(
     let salt = SaltString::generate(&mut OsRng);
     let hashed_password = Argon2::default()
         .hash_password(query.password.as_bytes(), &salt)
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error while hashing password: {}", e),
-            )
-        })
+        .map_err(|e| ErrRsp::internal(format!("Error while hashing password: {}", e)))
         .map(|hash| hash.to_string())?;
 
     let id = uuid::Uuid::new_v4().to_string();
@@ -81,7 +70,7 @@ pub async fn post_register(
 
     let user = users::ActiveModel {
         id: Set(id),
-        username: Set(username),
+        username: Set(username.clone()),
         email: Set(email),
         created_at: Set(created_at.clone()),
         updated_at: Set(created_at),
@@ -90,12 +79,10 @@ pub async fn post_register(
         ..Default::default()
     };
 
-    user.insert(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to insert user into database. Database error: {}", e),
-        )
-    })?;
+    user.insert(&data.db)
+        .await
+        .map_err(|e| ErrRsp::internal(format!("Can't insert user to DB: {}", e)))?;
 
-    Ok(StatusCode::OK)
+    let message = format!("User {} has been registered.", &username);
+    Ok(GenericRsp::create(message))
 }

@@ -4,10 +4,10 @@ use crate::{
         auth::{TokenClaims, TokenClaimsPurpose},
         prelude::*,
     },
-    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
+    routes::{ErrRsp, GenericRsp},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum::{extract::State, response::IntoResponse, Extension, Json};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -22,17 +22,17 @@ pub struct DeleteRequest {
 ///
 /// The user will receive an email with a token to confirm the deletion.
 #[utoipa::path(get, path = "/api/user/delete", responses(
-    (status = 200, description = "Token sent to user's email."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
+    (status = 200, description = "Token sent to user's email", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn get_delete(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if data.env.smtp_host.is_none() {
-        return Err(build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
+        return Err(ErrRsp::internal(
             "SMTP is not configured, please contact the server administrator.",
         ));
     }
@@ -49,12 +49,7 @@ pub async fn get_delete(
         &token_claims,
         &jsonwebtoken::EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
     )
-    .map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to generate token. JWT error: {}", e),
-        )
-    })?;
+    .map_err(|e| ErrRsp::internal(format!("Failed to generate token. JWT error: {}", e)))?;
 
     let email = format!(
         "Hello, {}!\n\n\
@@ -75,11 +70,11 @@ pub async fn get_delete(
         &format!("{} - Delete your password", &data.env.app_name),
         &email,
     ) {
-        Ok(_) => Ok(StatusCode::OK),
-        Err(e) => Err(build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to send email. SMTP error: {}", e),
-        )),
+        Ok(_) => Ok(GenericRsp::create("Token sent to user's email.")),
+        Err(e) => Err(ErrRsp::internal(format!(
+            "Failed to send email. SMTP error: {}",
+            e
+        ))),
     }
 }
 
@@ -87,49 +82,36 @@ pub async fn get_delete(
 ///
 /// The user will make a request with the token received by email.
 #[utoipa::path(post, path = "/api/user/delete", responses(
-    (status = 200, description = "User deleted."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
+    (status = 200, description = "User deleted", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn post_delete(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Json(query): Json<DeleteRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if query.password.is_empty() {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "Password cannot be empty.",
-        ));
+        return Err(ErrRsp::bad_request("Password cannot be empty."));
     }
 
     if !check_pass(&user.password, &query.password) {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "Invalid username or password.",
-        ));
+        return Err(ErrRsp::bad_request("Invalid username or password."));
     }
 
     let user = Users::find()
         .filter(users::Column::Id.eq(user.id))
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to fetch user from database. Database error: {}", e),
-            )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid user."))?;
+        .map_err(|e| ErrRsp::internal(format!("Can't fetch user from DB: {}", e)))?
+        .ok_or_else(|| ErrRsp::bad_request("Invalid user."))?;
 
     let user: users::ActiveModel = user.into();
 
-    user.delete(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to delete user. Database error: {}", e),
-        )
-    })?;
+    user.delete(&data.db)
+        .await
+        .map_err(|e| ErrRsp::internal(format!("Can't delete user: {}", e)))?;
 
-    Ok(StatusCode::OK)
+    Ok(GenericRsp::create("User deleted."))
 }

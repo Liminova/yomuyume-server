@@ -7,49 +7,95 @@ pub mod utils;
 
 pub use self::{auth::*, file::*, index::*, user::*, utils::*};
 pub use middlewares::auth::auth;
+use sea_orm::DbErr;
 
 use crate::{
     constants::{blurhash_dimension_cap, ratio_percision},
     models::categories::Model as Categories,
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use axum::{http::StatusCode, Json};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
+/* #region - to replace the clunky (StatusCode, Json<ErrorResponseBody>) with ErrorResponse */
 #[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
 pub struct ErrorResponseBody {
-    /// The error message.
     pub message: String,
 }
 
-#[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
-#[aliases(
-    // Auth
-    LoginResponse = ApiResponse<LoginResponseBody>,
-
-    // User
-    CategoriesResponse = ApiResponse<CategoriesResponseBody>,
-    TitleResponse = ApiResponse<TitleResponseBody>,
-    FilterResponse = ApiResponse<FilterResponseBody>,
-
-    // Utils
-    StatusResponse = ApiResponse<StatusResponseBody>,
-    TagsMapResponse = ApiResponse<TagsMapResponseBody>,
-    ScanningProgressResponse = ApiResponse<ScanningProgressResponseBody>,
-    SsimEval = ApiResponse<SsimEvalBody>,
-
-    // Other
-    ErrorResponse = ApiResponse<ErrorResponseBody>,
-)]
-pub struct ApiResponse<T> {
-    /// A description of the response status.
-    pub description: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(flatten)]
-    pub body: Option<T>,
+pub struct ErrRsp {
+    status: StatusCode,
+    body: Json<ErrorResponseBody>,
 }
+impl ErrRsp {
+    pub fn new<S: AsRef<str>>(status: StatusCode, body: S) -> Self {
+        Self {
+            status,
+            body: Json(ErrorResponseBody {
+                message: body.as_ref().to_string(),
+            }),
+        }
+    }
+
+    /// Internal Server Error, but add "Database error: " to the message
+    pub fn db(body: DbErr) -> Self {
+        Self::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Database error: {}", body),
+        )
+    }
+
+    /// Internal Server Error
+    pub fn internal<S: AsRef<str>>(body: S) -> Self {
+        Self::new(StatusCode::INTERNAL_SERVER_ERROR, body)
+    }
+
+    pub fn bad_request<S: AsRef<str>>(body: S) -> Self {
+        Self::new(StatusCode::BAD_REQUEST, body)
+    }
+
+    pub fn not_found<S: AsRef<str>>(body: S) -> Self {
+        Self::new(StatusCode::NOT_FOUND, body)
+    }
+
+    pub fn no_token() -> Self {
+        Self::new(
+            StatusCode::UNAUTHORIZED,
+            "You're not logged in, please provide a token.",
+        )
+    }
+}
+impl IntoResponse for ErrRsp {
+    fn into_response(self) -> Response {
+        (self.status, self.body).into_response()
+    }
+}
+/* #endregion */
+
+/* #region - GenericResponse::new() looks more elegant than build_resp() */
+#[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
+struct GenericResponseBody {
+    pub message: String,
+}
+
+struct GenericRsp;
+impl GenericRsp {
+    pub fn create<S: AsRef<str>>(body: S) -> (StatusCode, Json<GenericResponseBody>) {
+        (
+            StatusCode::OK,
+            Json(GenericResponseBody {
+                message: body.as_ref().to_string(),
+            }),
+        )
+    }
+}
+/* #endregion */
+
 #[derive(OpenApi)]
 #[openapi(
     info(
@@ -109,14 +155,10 @@ pub struct ApiResponse<T> {
 
         file::get_page,
         file::get_thumbnail,
-        file::head_thumbnail,
     ),
     components(schemas(
-        // Note: no need to declare non-Body structs, as long as they are declared in the aliases macro.
-
         // Auth
         LoginRequest,
-        LoginResponse,
         LoginResponseBody,
         RegisterRequest,
 
@@ -127,61 +169,29 @@ pub struct ApiResponse<T> {
 
         // Index
         Categories,
-        CategoriesResponse,
         CategoriesResponseBody,
-        TitleResponse,
         TitleResponseBody,
         FilterRequest,
-        FilterResponse,
         FilterResponseBody,
         FilterTitleResponseBody,
 
         // Utils
         StatusRequest,
-        StatusResponse,
         StatusResponseBody,
-        TagsMapResponse,
         TagsMapResponseBody,
-        TitleResponse,
         TitleResponseBody,
-        ScanningProgressResponse,
         ScanningProgressResponseBody,
-        SsimEval,
         SsimEvalBody,
+        SsimEvalTitle,
 
         // Other
-        ErrorResponse,
+        GenericResponseBody,
         ErrorResponseBody,
     ))
 )]
 pub struct ApiDoc;
 
-fn build_resp<T: Serialize>(status: StatusCode, body: T) -> (StatusCode, Json<ApiResponse<T>>) {
-    (
-        status,
-        Json(ApiResponse {
-            description: status.canonical_reason().unwrap_or_default().to_string(),
-            body: Some(body),
-        }),
-    )
-}
-
-fn build_err_resp<S: AsRef<str>>(
-    status: StatusCode,
-    body: S,
-) -> (StatusCode, Json<ApiResponse<ErrorResponseBody>>) {
-    (
-        status,
-        Json(ApiResponse {
-            description: status.canonical_reason().unwrap_or_default().to_string(),
-            body: Some(ErrorResponseBody {
-                message: body.as_ref().to_string(),
-            }),
-        }),
-    )
-}
-
-pub fn check_pass(real: &str, input: &String) -> bool {
+fn check_pass(real: &str, input: &String) -> bool {
     match PasswordHash::new(real) {
         Ok(parsed_hash) => Argon2::default()
             .verify_password(input.as_bytes(), &parsed_hash)
@@ -190,7 +200,7 @@ pub fn check_pass(real: &str, input: &String) -> bool {
     }
 }
 
-pub fn calculate_dimension(ratio: u32) -> (u32, u32) {
+fn calculate_dimension(ratio: u32) -> (u32, u32) {
     let max_dimension = blurhash_dimension_cap();
     let ratio = ratio as f32 / ratio_percision() as f32;
 

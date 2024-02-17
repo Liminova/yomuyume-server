@@ -1,4 +1,4 @@
-use crate::{constants::version::get_version, routes::build_resp};
+use crate::constants::version::get_version;
 use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
@@ -22,13 +22,15 @@ pub struct StatusRequest {
     pub echo: Option<String>,
 }
 
-#[utoipa::path(get, path = "/api/utils/status", params(StatusRequest), responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
+#[utoipa::path(get, path = "/api/utils/status", params(StatusRequest), responses(
+    (status = 200, description = "Status check successful", body = StatusResponseBody)
+))]
 pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     let echo = query.echo.clone();
     let version = get_version();
-    build_resp(
+    (
         StatusCode::OK,
-        Some(StatusResponseBody {
+        Json(StatusResponseBody {
             server_time: Local::now(),
             version,
             echo,
@@ -36,13 +38,15 @@ pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     )
 }
 
-#[utoipa::path(post, path = "/api/utils/status", responses((status = 200, description = "Status check successful.", body = StatusResponse)))]
+#[utoipa::path(post, path = "/api/utils/status", responses(
+    (status = 200, description = "Status check successful", body = StatusResponseBody)
+))]
 pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoResponse {
     let echo = query.and_then(|q| q.echo.clone());
     let version = get_version();
-    build_resp(
+    (
         StatusCode::OK,
-        Some(StatusResponseBody {
+        Json(StatusResponseBody {
             server_time: Local::now(),
             version,
             echo,

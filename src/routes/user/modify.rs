@@ -1,6 +1,6 @@
 use crate::{
     models::prelude::*,
-    routes::{build_err_resp, check_pass, ApiResponse, ErrorResponseBody},
+    routes::{check_pass, ErrRsp, GenericRsp},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
@@ -19,16 +19,16 @@ pub struct ModifyRequest {
 
 /// Modify user information.
 #[utoipa::path(post, path = "/api/user/modify", responses(
-    (status = 200, description = "Modify user successful."),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
-    (status = 401, description = "Unauthorized.", body = ErrorResponse),
-    (status = 500, description = "Internal server error.", body = ErrorResponse)
+    (status = 200, description = "Modify user successful", body = GenericResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody)
 ))]
 pub async fn post_modify(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Json(body): Json<ModifyRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let password_in_db = user.password.clone();
     let is_verified = user.is_verified;
 
@@ -45,13 +45,13 @@ pub async fn post_modify(
 
     if let Some(password) = body.password {
         if !is_verified {
-            return Err(build_err_resp(
+            return Err(ErrRsp::new(
                 StatusCode::UNAUTHORIZED,
                 "User is not verified, cannot change password.",
             ));
         }
         if !check_pass(&password_in_db, &password) {
-            return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid password."));
+            return Err(ErrRsp::bad_request("Invalid password."));
         }
     }
 
@@ -59,12 +59,10 @@ pub async fn post_modify(
         active_user.password = Set(new_password);
     }
 
-    active_user.save(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to update user. Database error: {}", e),
-        )
-    })?;
+    active_user
+        .save(&data.db)
+        .await
+        .map_err(|e| ErrRsp::internal(format!("Can't update user: {}", e)))?;
 
-    Ok(StatusCode::OK)
+    Ok(GenericRsp::create("Modify user successful."))
 }

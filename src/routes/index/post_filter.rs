@@ -1,8 +1,7 @@
 use super::{find_favorite_count, find_page_count, find_page_read};
 use crate::{
-    calculate_dimension,
     models::prelude::*,
-    routes::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody},
+    routes::{calculate_dimension, ErrRsp},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
@@ -62,24 +61,25 @@ pub struct FilterResponseBody {
 ///
 /// And also sorting them by various options.
 #[utoipa::path(post, path = "/api/index/filter", responses(
-    (status = 200, description = "Fetch all items successful.", body = FilterResponse),
-    (status = 204, description = "Fetch all items successful, but none were found.", body = FilterResponse),
-    (status = 500, description = "Internal server error.", body = ErrorResponse)
+    (status = 200, description = "Fetch all items successful", body = FilterResponseBody),
+    (status = 204, description = "Fetch all items successful, but none were found", body = FilterResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody)
 ))]
 pub async fn post_filter(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Json(query): Json<FilterRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let keywords = query.keywords;
     let category_ids = query.category_ids;
     let tag_ids = query.tag_ids;
     let limit = query.limit;
 
     if keywords.is_none() && category_ids.is_none() && tag_ids.is_none() {
-        return Ok(build_resp(
+        return Ok((
             StatusCode::NO_CONTENT,
-            Some(FilterResponseBody { data: vec![] }),
+            Json(FilterResponseBody { data: vec![] }),
         ));
     }
 
@@ -109,12 +109,7 @@ pub async fn post_filter(
             .filter(internal_cond)
             .all(&data.db)
             .await
-            .map_err(|e| {
-                build_err_resp(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Database error: {}", e),
-                )
-            })?;
+            .map_err(ErrRsp::db)?;
         for entity in title_tag_has_tag_id {
             condition = condition.add(titles::Column::Id.eq(entity.title_id));
         }
@@ -127,12 +122,7 @@ pub async fn post_filter(
                 .filter(progresses::Column::Page.gt(0))
                 .all(&data.db)
                 .await
-                .map_err(|e| {
-                    build_err_resp(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Database error: {}", e),
-                    )
-                })?;
+                .map_err(ErrRsp::db)?;
             for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -146,12 +136,7 @@ pub async fn post_filter(
                 .filter(progresses::Column::Page.eq(0))
                 .all(&data.db)
                 .await
-                .map_err(|e| {
-                    build_err_resp(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Database error: {}", e),
-                    )
-                })?;
+                .map_err(ErrRsp::db)?;
             for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -164,12 +149,7 @@ pub async fn post_filter(
                 .filter(bookmarks::Column::UserId.eq(&user.id))
                 .all(&data.db)
                 .await
-                .map_err(|e| {
-                    build_err_resp(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Database error: {}", e),
-                    )
-                })?;
+                .map_err(ErrRsp::db)?;
             for entity in bookmark_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -182,12 +162,7 @@ pub async fn post_filter(
                 .filter(favorites::Column::UserId.eq(&user.id))
                 .all(&data.db)
                 .await
-                .map_err(|e| {
-                    build_err_resp(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Database error: {}", e),
-                    )
-                })?;
+                .map_err(ErrRsp::db)?;
             for entity in favorite_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -221,12 +196,7 @@ pub async fn post_filter(
         .order_by(sort_by, sort_order)
         .all(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Database error: {}", e),
-            )
-        })?;
+        .map_err(ErrRsp::db)?;
 
     let mut resp_data: Vec<FilterTitleResponseBody> = vec![];
 
@@ -237,17 +207,9 @@ pub async fn post_filter(
         let thumbnail_model = Thumbnails::find_by_id(&title.id)
             .one(&data.db)
             .await
-            .map_err(|e| {
-                build_err_resp(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Database error: {}", e),
-                )
-            })?
+            .map_err(ErrRsp::db)?
             .ok_or_else(|| {
-                build_err_resp(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("Thumbnail not found."),
-                )
+                ErrRsp::new(StatusCode::INTERNAL_SERVER_ERROR, "Thumbnail not found.")
             })?;
 
         let (width, height) = calculate_dimension(thumbnail_model.ratio);
@@ -273,13 +235,10 @@ pub async fn post_filter(
         });
     }
 
-    let resp = match resp_data.is_empty() {
-        true => build_resp(
-            StatusCode::NO_CONTENT,
-            Some(FilterResponseBody { data: vec![] }),
-        ),
-        false => build_resp(StatusCode::OK, Some(FilterResponseBody { data: resp_data })),
+    let status_code = match resp_data.is_empty() {
+        true => StatusCode::NO_CONTENT,
+        false => StatusCode::OK,
     };
 
-    Ok(resp)
+    Ok((status_code, Json(FilterResponseBody { data: resp_data })))
 }

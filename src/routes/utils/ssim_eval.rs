@@ -8,8 +8,8 @@ use utoipa::ToSchema;
 
 use crate::{
     models::prelude::*,
-    routes::{build_err_resp, build_resp},
-    ApiResponse, AppState, ErrorResponseBody,
+    routes::{calculate_dimension, ErrRsp},
+    AppState,
 };
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -45,61 +45,30 @@ async fn random_pair(range: std::ops::Range<u64>) -> (u64, u64) {
     (title_a_index, title_b_index)
 }
 
-async fn get_title(
-    index: u64,
-    data: &Arc<AppState>,
-) -> Result<SsimEvalTitle, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+async fn get_title(index: u64, data: &Arc<AppState>) -> Result<SsimEvalTitle, ErrRsp> {
     let title = Titles::find()
         .offset(index)
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to fetch title from database. Database error: {}", e),
-            )
-        })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to fetch title from database. Database error: not exist.",
-            )
-        })?;
+        .map_err(ErrRsp::db)?
+        .ok_or_else(|| ErrRsp::internal("Can't find title"))?;
 
     let thumbnail = Thumbnails::find_by_id(&title.id)
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!(
-                    "Failed to fetch thumbnail from database. Database error: {}",
-                    e
-                ),
-            )
-        })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to fetch thumbnail from database. Database error: not exist.",
-            )
-        })?;
+        .map_err(ErrRsp::db)?
+        .ok_or_else(|| ErrRsp::internal("Can't find thumbnail"))?;
 
     let tags = TitlesTags::find()
         .filter(titles_tags::Column::TitleId.eq(&title.id))
         .all(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to fetch tags from database. Database error: {}", e),
-            )
-        })?
+        .map_err(ErrRsp::db)?
         .into_iter()
         .map(|title_tag| title_tag.tag_id)
         .collect::<Vec<_>>();
 
-    let (width, height) = crate::calculate_dimension(thumbnail.ratio);
+    let (width, height) = calculate_dimension(thumbnail.ratio);
 
     Ok(SsimEvalTitle {
         id: title.id,
@@ -119,12 +88,11 @@ async fn get_title(
 
 // Return 2 random titles from DB and their SSIM score
 #[utoipa::path(get, path = "/api/utils/ssim_eval", responses(
-    (status = 200, description = "2 random title", body = SsimEval),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
+    (status = 200, description = "2 random title", body = SsimEvalBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
 ))]
-pub async fn get_ssim_eval(
-    State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+pub async fn get_ssim_eval(State(data): State<Arc<AppState>>) -> Result<impl IntoResponse, ErrRsp> {
     let title_count = Titles::find().count(&data.db).await.unwrap();
     let (title_a_index, title_b_index) = random_pair(0..title_count).await;
 
@@ -147,27 +115,14 @@ pub async fn get_ssim_eval(
         .filter(condition)
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!(
-                    "Failed to fetch SSIM score from database. Database error: {}",
-                    e
-                ),
-            )
-        })?
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to fetch SSIM score from database. Database error: not exist.",
-            )
-        })?
+        .map_err(ErrRsp::db)?
+        .ok_or_else(|| ErrRsp::internal("Can't find ssim score"))?
         .ssim as f32
         / 1000.0;
 
-    Ok(build_resp(
+    Ok((
         StatusCode::OK,
-        Some(SsimEvalBody {
+        Json(SsimEvalBody {
             title_a,
             title_b,
             ssim: ssim_score,

@@ -4,13 +4,12 @@ use crate::{
         auth::{TokenClaims, TokenClaimsPurpose},
         prelude::*,
     },
-    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
+    routes::{ErrRsp, GenericRsp},
     AppState,
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     response::IntoResponse,
     Extension, Json,
 };
@@ -27,42 +26,33 @@ pub struct ResetRequest {
 
 /// Send an email to the user with a token to reset the password.
 #[utoipa::path(get, path = "/api/user/reset/{email}", responses(
-    (status = 200, description = "Token sent to user's email."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 409, description = "A conflict has occurred.", body = ErrorResponse),
+    (status = 200, description = "Token sent to user's email", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 409, description = "A conflict has occurred", body = ErrorResponseBody),
 ))]
 pub async fn get_reset(
     State(data): State<Arc<AppState>>,
     Path(email): Path<String>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if data.env.smtp_host.is_none() {
-        return Err(build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
+        return Err(ErrRsp::internal(
             "SMTP is not configured, please contact the server administrator.",
         ));
     }
 
     if !email_address::EmailAddress::is_valid(&email) {
-        return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid email."));
+        return Err(ErrRsp::bad_request("Invalid email."));
     }
 
     let user = Users::find()
         .filter(users::Column::Email.eq(&email.to_string().to_ascii_lowercase()))
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to fetch user from database. Database error: {}", e),
-            )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::NOT_FOUND, "User not found."))?;
+        .map_err(|e| ErrRsp::internal(format!("Can't find user: {}", e)))?
+        .ok_or_else(|| ErrRsp::bad_request("User not found."))?;
 
     if !user.is_verified {
-        return Err(build_err_resp(
-            StatusCode::CONFLICT,
-            "User is not verified.",
-        ));
+        return Err(ErrRsp::bad_request("User is not verified."));
     }
 
     let token = {
@@ -79,12 +69,7 @@ pub async fn get_reset(
             &jsonwebtoken::EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
         )
     }
-    .map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to generate token. JWT error: {}", e),
-        )
-    })?;
+    .map_err(|e| ErrRsp::internal(format!("Failed to generate token. JWT error: {}", e)))?;
 
     let email = format!(
         "Hello, {}!\n\n\
@@ -105,51 +90,41 @@ pub async fn get_reset(
         &format!("{} - Reset your password", &data.env.app_name),
         &email,
     ) {
-        Ok(_) => Ok(StatusCode::OK),
-        Err(e) => Err(build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to send email. SMTP error: {}", e),
-        )),
+        Ok(_) => Ok(GenericRsp::create("Token sent to user's email.")),
+        Err(e) => Err(ErrRsp::internal(format!(
+            "Failed to send email. SMTP error: {}",
+            e
+        ))),
     }
 }
 
 /// The user provides the token received by email to confirm the password change.
 #[utoipa::path(post, path = "/api/user/reset", responses(
-    (status = 200, description = "Password reset successful."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
+    (status = 200, description = "Password reset successful", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn post_reset(
     State(data): State<Arc<AppState>>,
     Extension(purpose): Extension<TokenClaimsPurpose>,
     Extension(user): Extension<users::Model>,
     Json(query): Json<ResetRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if purpose != TokenClaimsPurpose::ResetPassword {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "Invalid request purpose.",
-        ));
+        return Err(ErrRsp::bad_request("Invalid request purpose."));
     }
 
     if query.password.is_empty() {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "Password cannot be empty.",
-        ));
+        return Err(ErrRsp::bad_request("Password cannot be empty."));
     }
 
     let user = Users::find()
         .filter(users::Column::Id.eq(user.id))
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to fetch user from database. Database error: {}", e),
-            )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::BAD_REQUEST, "Invalid user."))?;
+        .map_err(|e| ErrRsp::internal(format!("Can't find user: {}", e)))?
+        .ok_or_else(|| ErrRsp::bad_request("User not found."))?;
 
     let password_valid = match PasswordHash::new(&user.password) {
         Ok(parsed_hash) => Argon2::default()
@@ -158,28 +133,20 @@ pub async fn post_reset(
         Err(_) => false,
     };
     if !password_valid {
-        return Err(build_err_resp(StatusCode::BAD_REQUEST, "Invalid password."));
+        return Err(ErrRsp::bad_request("Invalid password."));
     }
 
     let salt = SaltString::generate(&mut OsRng);
     let hashed_password = Argon2::default()
         .hash_password(query.password.as_bytes(), &salt)
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error while hashing password: {}", e),
-            )
-        })?
+        .map_err(|e| ErrRsp::internal(format!("Error while hashing password: {}", e)))?
         .to_string();
 
     let mut user: users::ActiveModel = user.into();
     user.password = Set(hashed_password);
-    user.save(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to update user. Database error: {}", e),
-        )
-    })?;
+    user.save(&data.db)
+        .await
+        .map_err(|e| ErrRsp::internal(format!("Can't update user: {}", e)))?;
 
-    Ok(StatusCode::OK)
+    Ok(GenericRsp::create("Password reset successful."))
 }

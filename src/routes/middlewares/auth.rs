@@ -1,6 +1,6 @@
 use crate::{
     models::{auth::TokenClaims, prelude::*},
-    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
+    routes::ErrRsp,
     AppState,
 };
 use axum::{
@@ -9,7 +9,6 @@ use axum::{
     http::{header, Request, StatusCode},
     middleware::Next,
     response::IntoResponse,
-    Json,
 };
 use axum_extra::extract::CookieJar;
 use jsonwebtoken::{decode, DecodingKey, Validation};
@@ -21,7 +20,7 @@ pub async fn auth(
     State(data): State<Arc<AppState>>,
     mut req: Request<Body>,
     next: Next,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let token = cookie_jar
         .get("token")
         .map(|cookie| cookie.value().to_string())
@@ -35,34 +34,22 @@ pub async fn auth(
                         .map(|stripped| stripped.to_owned())
                 })
         })
-        .ok_or_else(|| {
-            build_err_resp(
-                StatusCode::UNAUTHORIZED,
-                "You're not logged in, please provide a token.",
-            )
-        })?;
+        .ok_or_else(ErrRsp::no_token)?;
 
     let claims = decode::<TokenClaims>(
         &token,
         &DecodingKey::from_secret(data.env.jwt_secret.as_ref()),
         &Validation::default(),
     )
-    .map_err(|_| build_err_resp(StatusCode::UNAUTHORIZED, "Invalid token."))?
+    .map_err(|_| ErrRsp::no_token())?
     .claims;
 
-    let user_id = uuid::Uuid::parse_str(&claims.sub)
-        .map_err(|_| build_err_resp(StatusCode::UNAUTHORIZED, "Invalid token."))?;
+    let user_id = uuid::Uuid::parse_str(&claims.sub).map_err(|_| ErrRsp::no_token())?;
 
-    let user: Option<users::Model> =
-        Users::find_by_id(user_id)
-            .one(&data.db)
-            .await
-            .map_err(|e| {
-                build_err_resp(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Database error: {}", e),
-                )
-            })?;
+    let user: Option<users::Model> = Users::find_by_id(user_id)
+        .one(&data.db)
+        .await
+        .map_err(ErrRsp::db)?;
 
     if let Some(user) = user {
         req.extensions_mut().insert(user);
@@ -70,7 +57,7 @@ pub async fn auth(
             .insert(claims.purpose.unwrap_or_default());
         return Ok(next.run(req).await);
     }
-    Err(build_err_resp(
+    Err(ErrRsp::new(
         StatusCode::UNAUTHORIZED,
         "The user belonging to this token no longer exists.",
     ))

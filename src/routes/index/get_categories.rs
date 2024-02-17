@@ -1,8 +1,4 @@
-use crate::{
-    models::prelude::*,
-    routes::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody},
-    AppState,
-};
+use crate::{models::prelude::*, routes::ErrRsp, AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sea_orm::*;
 use serde::Serialize;
@@ -17,21 +13,13 @@ pub struct CategoriesResponseBody {
 
 /// Get all categories to be displayed on the library page.
 #[utoipa::path(get, path = "/api/index/categories", responses(
-    (status = 200, description = "Fetch all categories successful.", body = CategoriesResponse),
-    (status = 500, description = "Internal server error.", body = ErrorResponse)
+    (status = 200, description = "Fetch all categories successful", body = CategoriesResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody)
 ))]
 pub async fn get_categories(
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
-    let categories = Categories::find().all(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("DB error getting categories: {}", e),
-        )
-    })?;
+) -> Result<impl IntoResponse, ErrRsp> {
+    let data = Categories::find().all(&data.db).await.map_err(ErrRsp::db)?;
 
-    Ok(build_resp(
-        StatusCode::OK,
-        Some(CategoriesResponseBody { data: categories }),
-    ))
+    Ok((StatusCode::OK, Json(CategoriesResponseBody { data })))
 }

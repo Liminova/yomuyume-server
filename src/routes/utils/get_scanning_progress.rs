@@ -4,10 +4,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::{
-    routes::{build_resp, ApiResponse, ErrorResponseBody},
-    AppState,
-};
+use crate::{routes::ErrRsp, AppState};
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ScanningProgressResponseBody {
@@ -16,19 +13,20 @@ pub struct ScanningProgressResponseBody {
 }
 
 #[utoipa::path(get, path = "/api/utils/scanning_progress", responses(
-    (status = 200, description = "", body = ScanningProgressResponse),
+    (status = 200, description = "", body = ScanningProgressResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn get_scanning_progress(
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let scanning_complete = data.scanning_complete.lock().await;
     let scanning_progress = data.scanning_progress.lock().await;
 
-    Ok(build_resp(
+    Ok((
         StatusCode::OK,
-        ScanningProgressResponseBody {
+        Json(ScanningProgressResponseBody {
             scanning_completed: *scanning_complete,
             scanning_progress: *scanning_progress,
-        },
+        }),
     ))
 }

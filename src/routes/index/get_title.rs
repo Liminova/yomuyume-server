@@ -1,6 +1,6 @@
 use crate::{
     models::prelude::*,
-    routes::{build_err_resp, build_resp, ApiResponse, ErrorResponseBody},
+    routes::{calculate_dimension, ErrRsp},
     AppState,
 };
 use axum::{
@@ -54,48 +54,34 @@ pub struct TitleResponseBody {
 
 /// Get everything about a title.
 #[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
-    (status = 200, description = "Fetch title successful.", body = TitleResponse),
-    (status = 204, description = "Fetch title successful, but one was not found.", body = TitleResponse),
-    (status = 500, description = "Internal server error.", body = ErrorResponse)
+    (status = 200, description = "Fetch title successful", body = TitleResponseBody),
+    (status = 204, description = "No title found for the given id", body = TitleResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody)
 ))]
 pub async fn get_title(
     State(data): State<Arc<AppState>>,
     Path(title_id): Path<Uuid>,
     Extension(user): Extension<users::Model>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     let title = Titles::find_by_id(title_id)
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[1] DB error getting title: {}", e),
-            )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::NO_CONTENT, "No title found."))?;
+        .map_err(|e| ErrRsp::internal(format!("[1] DB error getting title: {}", e)))?
+        .ok_or_else(|| ErrRsp::new(StatusCode::NO_CONTENT, "No title found."))?;
 
     let thumbnail = Thumbnails::find_by_id(&title.id)
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[2] DB error getting thumbnail: {}", e),
-            )
-        })?
-        .ok_or_else(|| build_err_resp(StatusCode::NO_CONTENT, "No thumbnail found."))?;
+        .map_err(|e| ErrRsp::internal(format!("[2] DB error getting thumbnail: {}", e)))?
+        .ok_or_else(|| ErrRsp::new(StatusCode::NO_CONTENT, "No thumbnail found."))?;
 
     let pages = Pages::find()
         .filter(pages::Column::TitleId.eq(&title.id))
         .order_by_asc(pages::Column::Path)
         .all(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[3] DB error getting pages: {}", e),
-            )
-        })?;
+        .map_err(|e| ErrRsp::internal(format!("[3] DB error getting pages: {}", e)))?;
 
     // place the thumbnail.path at the front of the Vec<pages::Model>
     // and convert it to Vec<ResponsePage>
@@ -129,12 +115,7 @@ pub async fn get_title(
         )
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[4] DB error getting favorite: {}", e),
-            )
-        })?
+        .map_err(|e| ErrRsp::internal(format!("[4] DB error getting favorite: {}", e)))?
         .map(|_| true);
 
     let is_bookmark = Bookmarks::find()
@@ -145,12 +126,7 @@ pub async fn get_title(
         )
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[5] DB error getting bookmark: {}", e),
-            )
-        })?
+        .map_err(|e| ErrRsp::internal(format!("[5] DB error getting bookmark: {}", e)))?
         .map(|_| true);
 
     let page_read = Progresses::find()
@@ -161,24 +137,15 @@ pub async fn get_title(
         )
         .one(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[6] DB error getting progress: {}", e),
-            )
-        })?
+        .map_err(|e| ErrRsp::internal(format!("[6] DB error getting progress: {}", e)))?
         .map(|p| p.page);
 
     let favorites = match Favorites::find()
         .filter(favorites::Column::TitleId.eq(&title.id))
         .count(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[7] DB error getting favorites: {}", e),
-            )
-        })? {
+        .map_err(|e| ErrRsp::internal(format!("[7] DB error getting favorites: {}", e)))?
+    {
         0 => None,
         n => Some(n as i64),
     };
@@ -187,12 +154,8 @@ pub async fn get_title(
         .filter(bookmarks::Column::TitleId.eq(&title.id))
         .count(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[7] DB error getting bookmarks: {}", e),
-            )
-        })? {
+        .map_err(|e| ErrRsp::internal(format!("[7] DB error getting bookmarks: {}", e)))?
+    {
         0 => None,
         n => Some(n as i64),
     };
@@ -201,44 +164,40 @@ pub async fn get_title(
         .filter(titles_tags::Column::TitleId.eq(&title.id))
         .all(&data.db)
         .await
-        .map_err(|e| {
-            build_err_resp(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("[8] DB error getting tags: {}", e),
-            )
-        })?
+        .map_err(|e| ErrRsp::internal(format!("[8] DB error getting tags: {}", e)))?
         .iter()
         .map(|tag| tag.tag_id)
         .collect::<Vec<_>>();
 
-    let (width, height) = crate::calculate_dimension(thumbnail.ratio);
+    let (width, height) = calculate_dimension(thumbnail.ratio);
 
-    let title = TitleResponseBody {
-        category_id: title.category_id,
-        title: title.title,
-        author: title.author,
-        desc: title.description,
-        release_date: title.release,
-        thumbnail: ResponseThumbnail {
-            blurhash: thumbnail.blurhash,
-            width,
-            height,
-            format: PathBuf::from(thumbnail.path)
-                .extension()
-                .map(|s| s.to_str().unwrap_or(""))
-                .unwrap_or("")
-                .to_ascii_lowercase(),
-        },
-        tag_ids,
-        pages,
-        favorites,
-        bookmarks,
-        is_favorite,
-        is_bookmark,
-        page_read,
-        date_added: title.date_added,
-        date_updated: title.date_updated,
-    };
-
-    Ok(build_resp(StatusCode::OK, title))
+    Ok((
+        StatusCode::OK,
+        Json(TitleResponseBody {
+            category_id: title.category_id,
+            title: title.title,
+            author: title.author,
+            desc: title.description,
+            release_date: title.release,
+            thumbnail: ResponseThumbnail {
+                blurhash: thumbnail.blurhash,
+                width,
+                height,
+                format: PathBuf::from(thumbnail.path)
+                    .extension()
+                    .map(|s| s.to_str().unwrap_or(""))
+                    .unwrap_or("")
+                    .to_ascii_lowercase(),
+            },
+            tag_ids,
+            pages,
+            favorites,
+            bookmarks,
+            is_favorite,
+            is_bookmark,
+            page_read,
+            date_added: title.date_added,
+            date_updated: title.date_updated,
+        }),
+    ))
 }

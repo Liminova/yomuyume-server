@@ -4,32 +4,30 @@ use crate::{
         auth::{TokenClaims, TokenClaimsPurpose},
         prelude::*,
     },
-    routes::{build_err_resp, ApiResponse, ErrorResponseBody},
+    routes::{ErrRsp, GenericRsp},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum::{extract::State, response::IntoResponse, Extension};
 use sea_orm::{ActiveModelTrait, Set};
 use std::sync::Arc;
 
 /// Send a verification email to the user's email address.
 #[utoipa::path(get, path = "/api/user/verify", responses(
-    (status = 200, description = "Verification email sent."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
+    (status = 200, description = "Verification email sent", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn get_verify(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if user.is_verified {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "User is already verified.",
-        ));
+        return Err(ErrRsp::bad_request("User is already verified."));
     }
 
     if data.env.smtp_host.is_none() {
-        return Err(build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
+        return Err(ErrRsp::internal(
             "SMTP is not configured, please contact the server administrator.",
         ));
     }
@@ -46,12 +44,7 @@ pub async fn get_verify(
         &token_claims,
         &jsonwebtoken::EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
     )
-    .map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to generate token. JWT error: {}", e),
-        )
-    })?;
+    .map_err(|e| ErrRsp::internal(format!("Failed to generate token. JWT error: {}", e)))?;
 
     let body = format!(
         "Hello {},\n\n\
@@ -71,48 +64,40 @@ pub async fn get_verify(
         &format!("{} - Verify your account", &data.env.app_name),
         &body,
     ) {
-        Ok(_) => Ok(StatusCode::OK),
-        Err(e) => Err(build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to send email. SMTP error: {}", e),
-        )),
+        Ok(_) => Ok(GenericRsp::create("Verification email sent.")),
+        Err(e) => Err(ErrRsp::internal(format!(
+            "Failed to send email. SMTP error: {}",
+            e
+        ))),
     }
 }
 
 /// The user provides the token received by email.
 #[utoipa::path(post, path = "/api/user/verify", responses(
-    (status = 200, description = "Account verification successful."),
-    (status = 500, description = "Internal server error.", body = ErrorResponse),
-    (status = 400, description = "Bad request.", body = ErrorResponse),
+    (status = 200, description = "Account verification successful", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
 ))]
 pub async fn post_verify(
     State(data): State<Arc<AppState>>,
     Extension(purpose): Extension<TokenClaimsPurpose>,
     Extension(user): Extension<users::Model>,
-) -> Result<impl IntoResponse, (StatusCode, Json<ApiResponse<ErrorResponseBody>>)> {
+) -> Result<impl IntoResponse, ErrRsp> {
     if user.is_verified {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "User is already verified.",
-        ));
+        return Err(ErrRsp::bad_request("User is already verified."));
     }
 
     if purpose != TokenClaimsPurpose::VerifyRegister {
-        return Err(build_err_resp(
-            StatusCode::BAD_REQUEST,
-            "Invalid request purpose.",
-        ));
+        return Err(ErrRsp::bad_request("Invalid request purpose."));
     }
 
     let mut user: users::ActiveModel = user.into();
     user.is_verified = Set(true);
 
-    user.save(&data.db).await.map_err(|e| {
-        build_err_resp(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to update user. Database error: {}", e),
-        )
-    })?;
+    user.save(&data.db)
+        .await
+        .map_err(|e| ErrRsp::internal(format!("Can't update user: {}", e)))?;
 
-    Ok(StatusCode::OK)
+    Ok(GenericRsp::create("Account verification successful."))
 }
