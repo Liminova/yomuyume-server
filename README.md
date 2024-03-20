@@ -1,3 +1,7 @@
+### Moved to [Liminova/yomuyume](https://github.com/Liminova/yomuyume)
+
+---
+
 # yomuyume-server
 
 <img src="assets/yomuyume.png" alt="yomuyume logo" width="128" height="128">
